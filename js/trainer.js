@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
   var SET_ORDER = ['EO', 'OCLL', 'CP', 'EP'];
-  var STATUSES = [['nuevo', 'Nuevo'], ['aprendiendo', 'Aprendiendo'], ['dominado', 'Dominado']];
+  var STATUSES = ['nuevo', 'aprendiendo', 'dominado']; // valores guardados; la etiqueta se traduce con la clave status + valor
   var mode = 'learn';
   var container = null;
   var active = false;
@@ -12,12 +12,13 @@
   var timeEl = null;
 
   function esc(s) { return root.escHtml(s); }
+  function t(key, params) { return root.I18N.t(key, params); }
   function F(ms) { return root.Stats.formatTime(ms); }
 
   function diagram(view) {
     var C = root.Cube.COLORS;
     var cell = 20, gap = 2, m = 18, th = 8;
-    var out = '<svg class="ll" viewBox="0 0 100 100" role="img" aria-label="Diagrama de la última capa">';
+    var out = '<svg class="ll" viewBox="0 0 100 100" role="img" aria-label="' + esc(t('trainer.diagram.aria')) + '">';
     function rect(x, y, w, h, v) {
       var fill = (!v || v === 'x') ? 'var(--hidden)' : C[v];
       out += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="3" fill="' + fill + '" stroke="var(--stk)" stroke-width="0.8"/>';
@@ -34,8 +35,7 @@
   }
 
   function chip(st) {
-    var label = STATUSES.filter(function (x) { return x[0] === st; })[0][1];
-    return '<span class="chip chip-' + st + '">' + label + '</span>';
+    return '<span class="chip chip-' + st + '">' + esc(t('status.' + st)) + '</span>';
   }
 
   function avgOf(id) {
@@ -47,7 +47,7 @@
 
   function renderLearn() {
     var total = root.ALGS.length, mastered = root.ALGS.filter(function (c) { return root.Storage.caseStatus(c.id) === 'dominado'; }).length;
-    var h = '<div class="muted counter">Dominados <b>' + mastered + '/' + total + '</b> · ' + esc(root.Storage.activeSession().name) + '</div>';
+    var h = '<div class="muted counter">' + t('trainer.mastered', { m: mastered, total: total, name: esc(root.Storage.activeSession().name) }) + '</div>';
     SET_ORDER.forEach(function (s) {
       var cs = root.ALGS.filter(function (c) { return c.set === s; });
       if (!cs.length) return;
@@ -59,10 +59,10 @@
           '<div class="case-body"><div class="case-name">' + esc(c.name) + ' ' + chip(st) + '</div>' +
           '<code class="alg">' + esc(c.alg) + '</code>' +
           '<p class="tip">' + esc(c.tip || '') + '</p>' +
-          '<select class="st-select" aria-label="Estado de ' + esc(c.name) + '">' +
-          STATUSES.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === st ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') +
+          '<select class="st-select" aria-label="' + esc(t('trainer.statusOf', { name: c.name })) + '">' +
+          STATUSES.map(function (x) { return '<option value="' + x + '"' + (x === st ? ' selected' : '') + '>' + esc(t('status.' + x)) + '</option>'; }).join('') +
           '</select>' +
-          (times.length ? '<div class="muted small">Media últimos: <b>' + F(avgOf(c.id)) + '</b> · ' + times.length + ' intento' + (times.length === 1 ? '' : 's') + '</div>' : '') +
+          (times.length ? '<div class="muted small">' + t(times.length === 1 ? 'trainer.avg.one' : 'trainer.avg.many', { avg: F(avgOf(c.id)), n: times.length }) + '</div>' : '') +
           '</div></article>';
       });
       h += '</div>';
@@ -106,36 +106,36 @@
   }
 
   function renderPractice() {
-    var h = '<div class="card filters"><div class="filter-row"><b>Sets:</b> ';
+    var h = '<div class="card filters"><div class="filter-row"><b>' + esc(t('trainer.sets')) + '</b> ';
     SET_ORDER.forEach(function (s) {
       var any = root.ALGS.filter(function (c) { return c.set === s; })[0];
       if (!any) return;
       h += '<label class="check"><input type="checkbox" data-set="' + s + '"' + (filt.sets[s] ? ' checked' : '') + '> ' + esc(any.setName) + '</label>';
     });
-    h += '</div><div class="filter-row"><b>Estado:</b> ' +
-      '<label class="check"><input type="radio" name="only" value="todos"' + (filt.only === 'todos' ? ' checked' : '') + '> Todos</label>' +
-      '<label class="check"><input type="radio" name="only" value="nodom"' + (filt.only === 'nodom' ? ' checked' : '') + '> No dominados</label></div></div>';
+    h += '</div><div class="filter-row"><b>' + esc(t('trainer.state')) + '</b> ' +
+      '<label class="check"><input type="radio" name="only" value="todos"' + (filt.only === 'todos' ? ' checked' : '') + '> ' + esc(t('trainer.all')) + '</label>' +
+      '<label class="check"><input type="radio" name="only" value="nodom"' + (filt.only === 'nodom' ? ' checked' : '') + '> ' + esc(t('trainer.notMastered')) + '</label></div></div>';
     if (!cur) {
-      return h + '<div class="card empty">No hay casos con estos filtros. Cambia los filtros o marca algún caso como no dominado.</div>';
+      return h + '<div class="card empty">' + esc(t('trainer.noCases')) + '</div>';
     }
     var c = cur.c;
     var view = root.Cube.lastLayerView(root.Cube.applyAlg(root.Cube.solved('yellowTop'), cur.setup), c.mask);
     h += '<div class="card practice"><div class="practice-top">' + diagram(view) + '<div class="practice-info">' +
-      '<div class="muted small">Setup (amarillo arriba, verde al frente):</div><code class="alg">' + esc(cur.setup) + '</code>' +
+      '<div class="muted small">' + esc(t('trainer.setup')) + ' <button class="btn small-btn" data-act="notation">' + esc(t('notation.howToRead')) + '</button></div><code class="alg">' + esc(cur.setup) + '</code>' +
       '<div id="solution" class="solution' + (cur.revealed ? '' : ' hidden') + '">' +
       '<div class="case-name">' + esc(c.name) + ' ' + chip(root.Storage.caseStatus(c.id)) + '</div><code class="alg">' + esc(c.alg) + '</code>' +
       '<p class="tip">' + esc(c.tip || '') + '</p></div>' +
-      '<div class="btn-row"><button class="btn" data-act="reveal"' + (cur.revealed ? ' style="display:none"' : '') + '>Mostrar solución</button>' +
-      '<button class="btn primary" data-act="next">Siguiente caso</button></div></div></div>' +
+      '<div class="btn-row"><button class="btn" data-act="reveal"' + (cur.revealed ? ' style="display:none"' : '') + '>' + esc(t('trainer.reveal')) + '</button>' +
+      '<button class="btn primary" data-act="next">' + esc(t('trainer.next')) + '</button></div></div></div>' +
       '<div id="ptimer" class="timer-zone small-zone" tabindex="-1"><div id="ptime" class="time">0.00</div>' +
-      '<div class="muted small" id="phint">Mantén Espacio (o toca aquí) y suelta para empezar; pulsa de nuevo para parar</div></div></div>';
+      '<div class="muted small" id="phint">' + esc(t('trainer.hint')) + '</div></div></div>';
     return h;
   }
 
   function render() {
     if (!container) return;
-    var h = '<div class="seg" role="tablist"><button class="seg-btn' + (mode === 'learn' ? ' on' : '') + '" data-mode="learn">Aprender</button>' +
-      '<button class="seg-btn' + (mode === 'practice' ? ' on' : '') + '" data-mode="practice">Practicar</button></div>';
+    var h = '<div class="seg" role="tablist"><button class="seg-btn' + (mode === 'learn' ? ' on' : '') + '" data-mode="learn">' + esc(t('trainer.learn')) + '</button>' +
+      '<button class="seg-btn' + (mode === 'practice' ? ' on' : '') + '" data-mode="practice">' + esc(t('trainer.practice')) + '</button></div>';
     h += mode === 'learn' ? renderLearn() : renderPractice();
     container.innerHTML = h;
     if (mode === 'practice' && cur) bindTimer();
@@ -202,7 +202,8 @@
         mode = b.dataset.mode;
         if (mode === 'practice' && !cur) nextCase();
         render();
-      } else if (b.dataset.act === 'next') goNext();
+      } else if (b.dataset.act === 'notation') { if (root.App && root.App.showTab) root.App.showTab('notation'); }
+      else if (b.dataset.act === 'next') goNext();
       else if (b.dataset.act === 'reveal' && cur) {
         cur.revealed = true;
         container.querySelector('#solution').classList.remove('hidden');

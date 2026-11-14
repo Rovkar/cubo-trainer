@@ -104,6 +104,28 @@
       return s;
     },
 
+    // Geometria publica de un facelet (copia): posicion p y normal n.
+    stickerGeom(face, i) {
+      const g = stickerGeom(face, i);
+      return { p: g.p.slice(), n: g.n.slice() };
+    },
+
+    // Datos del movimiento de un token: {base, axis, layers, dir, turns}.
+    // X' invierte dir (turns 1); X2 conserva el dir base (turns 2).
+    moveInfo(token) {
+      const t = Cube.parseAlg(token)[0];
+      if (!t) throw new Error('Movimiento invalido: "' + token + '"');
+      const base = t[0], suf = t.slice(1);
+      const def = MOVE_DEF[base];
+      return {
+        base: base,
+        axis: def[0],
+        layers: def[1].slice(),
+        dir: suf === "'" ? -def[2] : def[2],
+        turns: suf === '2' ? 2 : 1,
+      };
+    },
+
     parseAlg(str) {
       if (Array.isArray(str)) str = str.join(' ');
       const clean = String(str == null ? '' : str).replace(/[()\[\]]/g, ' ').trim();

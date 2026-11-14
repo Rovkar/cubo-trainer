@@ -4,6 +4,9 @@
   var persistent = true;
   var data = null;
 
+  // Nombre por defecto en el idioma actual (en Node, sin I18N, se mantiene el español)
+  function defName(n) { return root.I18N ? root.I18N.t('profile.default', { n: n }) : ('Perfil ' + n); }
+
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
   function defSettings() { return { inspection: false, phaseMode: 'off', customPhases: '', hideTime: false, scrambleLength: 20, showNet: true }; }
@@ -12,7 +15,7 @@
   // Completa un perfil con los valores por defecto (g = datos globales antiguos a copiar si el perfil no tiene los suyos)
   function fixProfile(s, g, n) {
     if (!s.id) s.id = uid();
-    if (!s.name) s.name = 'Perfil ' + n;
+    if (!s.name) s.name = defName(n);
     if (!s.created) s.created = Date.now();
     if (!Array.isArray(s.solves)) s.solves = [];
     var st = s.settings && typeof s.settings === 'object' ? s.settings : (g.settings ? clone(g.settings) : {});
@@ -31,7 +34,7 @@
     delete d.settings; delete d.trainer; delete d.plan;
     d.sessions.forEach(function (s, i) { fixProfile(s, g, i + 1); });
     if (!d.sessions.length) {
-      var s = fixProfile({ id: uid(), name: 'Perfil 1', created: Date.now(), solves: [] }, g, 1);
+      var s = fixProfile({ id: uid(), name: defName(1), created: Date.now(), solves: [] }, g, 1);
       d.sessions.push(s);
       d.activeSessionId = s.id;
     }
@@ -85,7 +88,7 @@
   }
   function newSession(name) {
     var d = get();
-    var s = fixProfile({ id: uid(), name: name || ('Perfil ' + (d.sessions.length + 1)), created: Date.now(), solves: [] }, {}, d.sessions.length + 1);
+    var s = fixProfile({ id: uid(), name: name || defName(d.sessions.length + 1), created: Date.now(), solves: [] }, {}, d.sessions.length + 1);
     d.sessions.push(s); d.activeSessionId = s.id; save(); return s;
   }
   function renameSession(id, name) {
@@ -126,7 +129,7 @@
   function exportAll() { return JSON.stringify(get(), null, 2); }
   function importAll(text) {
     var parsed = JSON.parse(text);
-    if (!parsed || !Array.isArray(parsed.sessions)) throw new Error('Formato no válido');
+    if (!parsed || !Array.isArray(parsed.sessions)) throw new Error(root.I18N ? root.I18N.t('import.invalid') : 'Formato no válido');
     data = normalize(parsed); save();
   }
 

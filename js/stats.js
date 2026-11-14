@@ -55,19 +55,28 @@
     }
     return totalS + '.' + cc;
   }
-  function sameArr(a, b) {
+  // keyFn (opcional) normaliza cada nombre de fase antes de compararlos; null/undefined = usar el nombre tal cual
+  function sameArr(a, b, keyFn) {
     if (!a || !b || a.length !== b.length) return false;
-    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    for (var i = 0; i < a.length; i++) {
+      var x = a[i], y = b[i];
+      if (keyFn) {
+        var kx = keyFn(x), ky = keyFn(y);
+        x = kx === null || kx === undefined ? x : kx;
+        y = ky === null || ky === undefined ? y : ky;
+      }
+      if (x !== y) return false;
+    }
     return true;
   }
-  function phaseBreakdown(solves, lastN) {
+  function phaseBreakdown(solves, lastN, keyFn) {
     lastN = lastN || 12;
     var withSplits = (solves || []).filter(function (s) {
       return s.penalty !== 'DNF' && s.splits && s.splits.length && s.phases && s.phases.length === s.splits.length;
     });
     if (!withSplits.length) return { phases: [], count: 0 };
     var ref = withSplits[withSplits.length - 1].phases;
-    var sel = withSplits.filter(function (s) { return sameArr(s.phases, ref); }).slice(-lastN);
+    var sel = withSplits.filter(function (s) { return sameArr(s.phases, ref, keyFn); }).slice(-lastN);
     var sums = ref.map(function () { return 0; });
     sel.forEach(function (s) {
       for (var i = 0; i < ref.length; i++) sums[i] += s.splits[i] - (i ? s.splits[i - 1] : 0);

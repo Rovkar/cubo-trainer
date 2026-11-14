@@ -52,7 +52,7 @@
     function handleError(e) {
       var code = e && e.code;
       if (ERR_LOCAL[code]) return goLocal();
-      if (code === 'quota_exceeded') return setStatus('error', 'Sin espacio de almacenamiento: exporta una copia y borra perfiles o resoluciones antiguas');
+      if (code === 'quota_exceeded') return setStatus('error', env.I18N ? env.I18N.t('sync.quota') : 'Sin espacio de almacenamiento: exporta una copia y borra perfiles o resoluciones antiguas');
       setStatus('error', (e && e.message) || String(e));
     }
 

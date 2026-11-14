@@ -4,6 +4,7 @@
   var open = {}; // overrides manuales de plegado
 
   function esc(s) { return root.escHtml(s); }
+  function t(key, params) { return root.I18N.t(key, params); }
 
   function phaseDone(p) {
     var m = root.Storage.milestones();
@@ -25,15 +26,15 @@
     var plan = root.TRAINING_PLAN, M = root.Storage.milestones();
     var cur = currentPhase(), ao = currentAo12();
     var h = '<div class="card"><p>' + plan.intro + '</p></div>';
-    h += '<div class="card highlight"><h3>Situación de ' + esc(root.Storage.activeSession().name) + '</h3><ul class="plain">' +
-      '<li>ao12 actual: <b>' + (ao === null ? 'aún no hay 12 resoluciones' : root.Stats.formatTime(ao)) + '</b></li>';
+    h += '<div class="card highlight"><h3>' + esc(t('plan.situation', { name: root.Storage.activeSession().name })) + '</h3><ul class="plain">' +
+      '<li>' + esc(t('plan.currentAo12')) + ' <b>' + (ao === null ? esc(t('plan.noAo12')) : root.Stats.formatTime(ao)) + '</b></li>';
     if (cur) {
-      h += '<li>Fase actual: <b>' + esc(cur.title) + '</b></li><li>Meta: <b>' + esc(cur.goal) + '</b></li></ul>';
+      h += '<li>' + esc(t('plan.currentPhase')) + ' <b>' + esc(cur.title) + '</b></li><li>' + esc(t('plan.goal')) + ' <b>' + esc(cur.goal) + '</b></li></ul>';
       if (cur.goalMs && ao !== null && ao !== Infinity && ao <= cur.goalMs) {
-        h += '<p class="good">Tu ao12 ya cumple la meta de esta fase. Marca los hitos que te falten y pasa a la siguiente: vas muy bien.</p>';
+        h += '<p class="good">' + esc(t('plan.goalMet')) + '</p>';
       }
     } else {
-      h += '<li>Has completado todas las fases del plan.</li></ul><p class="good">Enhorabuena, has completado el plan. Sigue practicando y fijando nuevas metas.</p>';
+      h += '<li>' + esc(t('plan.allDone')) + '</li></ul><p class="good">' + esc(t('plan.congrats')) + '</p>';
     }
     h += '</div>';
 
@@ -43,13 +44,13 @@
       var pct = Math.round(cnt / p.milestones.length * 100);
       var isOpen = open[p.id] !== undefined ? open[p.id] : !done;
       h += '<details class="card phase' + (isCur ? ' current' : '') + (done ? ' done' : '') + '" data-phase="' + p.id + '"' + (isOpen ? ' open' : '') + '>' +
-        '<summary><span class="ph-title">' + esc(p.title) + (done ? ' ✓' : '') + (isCur ? ' <span class="chip chip-aprendiendo">Fase actual</span>' : '') + '</span>' +
+        '<summary><span class="ph-title">' + esc(p.title) + (done ? ' ✓' : '') + (isCur ? ' <span class="chip chip-aprendiendo">' + esc(t('plan.phaseBadge')) + '</span>' : '') + '</span>' +
         '<span class="muted small">' + esc(p.weeks) + ' · ' + cnt + '/' + p.milestones.length + '</span></summary>' +
-        '<p><b>Meta:</b> ' + esc(p.goal) + '</p><p>' + p.summary + '</p>';
+        '<p><b>' + esc(t('plan.goal')) + '</b> ' + esc(p.goal) + '</p><p>' + p.summary + '</p>';
       p.sections.forEach(function (s) {
         h += '<h4>' + esc(s.heading) + '</h4><ul>' + s.items.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
       });
-      h += '<h4>Hitos</h4><div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div><ul class="plain miles">' +
+      h += '<h4>' + esc(t('plan.milestones')) + '</h4><div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div><ul class="plain miles">' +
         p.milestones.map(function (x) {
           return '<li><label class="check"><input type="checkbox" data-ms="' + x.id + '"' + (M[x.id] ? ' checked' : '') + '> ' + esc(x.text) + '</label></li>';
         }).join('') + '</ul></details>';
@@ -60,7 +61,7 @@
       r.blocks.map(function (b) {
         return '<li><b>' + esc(b.minutes) + ' min · ' + esc(b.title) + '</b><br><span class="muted">' + b.text + '</span></li>';
       }).join('') + '</ul></div>';
-    h += '<div class="card"><h3>Consejos</h3><ul>' + plan.tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
+    h += '<div class="card"><h3>' + esc(t('plan.tips')) + '</h3><ul>' + plan.tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
     container.innerHTML = h;
   }
 

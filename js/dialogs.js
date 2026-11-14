@@ -7,6 +7,8 @@
   };
 
   function open(message, o) {
+    var cancelTxt = root.I18N ? root.I18N.t('common.cancel') : 'Cancelar';
+    var okTxt = root.I18N ? root.I18N.t('common.ok') : 'Aceptar';
     return new Promise(function (resolve) {
       var prev = document.activeElement;
       var b = document.createElement('div');
@@ -14,8 +16,8 @@
       b.innerHTML = '<div class="modal dlg" role="dialog" aria-modal="true" aria-label="' + esc(message) + '">' +
         '<p class="dlg-msg">' + esc(message) + '</p>' +
         (o.input ? '<input type="text" class="dlg-input" id="dlg-input" autocomplete="off">' : '') +
-        '<div class="dlg-btns"><button class="btn" data-r="cancel">Cancelar</button>' +
-        '<button class="btn ' + (o.danger ? 'danger-fill' : 'primary') + '" data-r="ok">' + esc(o.okText || 'Aceptar') + '</button></div></div>';
+        '<div class="dlg-btns"><button class="btn" data-r="cancel">' + esc(cancelTxt) + '</button>' +
+        '<button class="btn ' + (o.danger ? 'danger-fill' : 'primary') + '" data-r="ok">' + esc(o.okText || okTxt) + '</button></div></div>';
       var input = b.querySelector('#dlg-input');
       if (input) input.value = o.defaultValue || '';
       var done = false;

@@ -1,62 +1,78 @@
 # Cubo Trainer
 
-App web para mejorar tus tiempos en el cubo 3x3 (método por capas): cronómetro con mezclas, cronometraje por fases, estadísticas, entrenador de algoritmos de última capa y plan de entrenamiento. No necesita instalación, cuenta ni servidor propio.
+[Español](README.es.md) · **English**
 
-**Úsala en línea:** https://rovkar.github.io/cubo-trainer/
+A web app to improve your 3x3 Rubik's cube times (layer-by-layer method): timer with scrambles, per-phase timing, statistics, a last-layer algorithm trainer, a training plan and a move-notation reference. No installation, account or server of its own needed.
 
-## Cómo abrirla
+**Use it online:** https://rovkar.github.io/cubo-trainer/
 
-- **En línea:** abre el enlace de arriba en el móvil o en el ordenador. No hace falta registrarse.
-- **Sin internet:** descarga el repositorio y haz doble clic en `index.html`. Funciona directamente desde el disco (`file://`) en cualquier navegador moderno.
+## How to open it
 
-## Controles del cronómetro
+- **Online:** open the link above on your phone or computer. No sign-up needed.
+- **Offline:** download the repository and double-click `index.html`. It works straight from disk (`file://`) in any modern browser.
 
-- **Espacio** (o **tocar la zona del cronómetro** en móvil): mantén pulsado unos 0,3 s hasta que se ponga en verde y suelta para empezar. Si sueltas antes (ámbar), no arranca.
-- **Cualquier tecla / toque** mientras corre: para el cronómetro.
-- **Modo fases**: cada pulsación registra el final de una fase; la última pulsación detiene el cronómetro (N fases = N pulsaciones).
-- **Inspección de 15 s** (opcional): la primera pulsación inicia la cuenta atrás, con avisos a los 8 s y 12 s. Si empiezas entre 15 y 17 s se añade +2; pasados 17 s es DNF. **Escape** cancela la inspección.
-- Los atajos se ignoran si escribes en un campo de texto o hay una ventana emergente abierta.
+## Timer controls
 
-## Pestañas
+- **Space** (or **tap the timer area** on mobile): hold for about 0.3 s until it turns green, then release to start. If you release earlier (amber), it won't start.
+- **Any key / tap** while it is running: stops the timer.
+- **Phase mode**: each press records the end of a phase; the last press stops the timer (N phases = N presses).
+- **15 s inspection** (optional): the first press starts the countdown, with warnings at 8 s and 12 s. If you start between 15 and 17 s, +2 is added; after 17 s it is a DNF. **Escape** cancels the inspection.
+- Shortcuts are ignored while you type in a text field or a dialog is open.
 
-- **Cronómetro**: mezcla (con vista en red), cronómetro, ajustes (inspección, modo fases, ocultar tiempo, longitud de mezcla, mostrar red), estadísticas rápidas y últimas 10 resoluciones con OK / +2 / DNF / borrar. Haz clic en un tiempo para ver la mezcla, la fecha y los tiempos por fase.
-- **Entrenador**: *Aprender* muestra los 16 casos de última capa con diagrama, algoritmo, consejo y estado (Nuevo / Aprendiendo / Dominado). *Practicar* te propone casos aleatorios (más a menudo los que estás aprendiendo y los más lentos): te da el setup, cronometras la ejecución y luego se revela la solución. Tras parar, Espacio pasa al siguiente caso.
-- **Estadísticas**: single, ao5, ao12, ao50 y ao100 (actual y mejor), gráfico de evolución con la meta de tu fase actual, análisis de en qué fase pierdes más tiempo, tabla completa de resoluciones y gestión del perfil (renombrar, borrar, exportar CSV, copia de seguridad JSON, importar JSON).
-- **Plan**: plan de entrenamiento por fases con hitos que puedes marcar, tu situación actual según tu ao12 (los hitos son de cada perfil), rutina diaria y consejos.
+## Tabs
 
-## Perfiles
+- **Timer**: scramble (with a net view), timer, settings (inspection, phase mode, hide time, scramble length, show net), quick stats and the last 10 solves with OK / +2 / DNF / delete. Click a time to see its scramble, date and per-phase times.
+- **Trainer**: *Learn* shows the 16 last-layer cases with diagram, algorithm, tip and status (New / Learning / Mastered). *Practice* suggests random cases (more often the ones you are learning and the slowest ones): it gives you the setup, you time the execution and then the solution is revealed. After stopping, Space moves to the next case.
+- **Stats**: single, ao5, ao12, ao50 and ao100 (current and best), a progress chart with the goal of your current phase, an analysis of which phase loses you the most time, the full solve table and profile management (rename, delete, export CSV, JSON backup, import JSON).
+- **Plan**: a phase-by-phase training plan with milestones you can tick off, your current situation based on your ao12 (milestones are per profile), a daily routine and tips.
+- **Notation**: one diagram per move letter (U D R L F B, each with `'` and `2`, plus `r`, `f` and `M`, which the Trainer uses), computed from the cube engine. Each one has a physical description of the turn and a *result on a solved cube* self-check.
 
-Cada persona usa su propio **perfil** (por ejemplo, varias personas que comparten un dispositivo). Cada perfil guarda por separado sus resoluciones, sus ajustes del cronómetro, el progreso del entrenador (estado y tiempos de cada caso) y los hitos del plan.
+## Profiles
 
-- **Crear**: botón *+ Nuevo perfil* en la cabecera; empieza vacío y con los ajustes por defecto.
-- **Cambiar**: selector *Perfil* de la cabecera (muestra el nombre y cuántas resoluciones tiene). Al cambiar se repinta toda la app con los datos de ese perfil.
-- **Renombrar / borrar**: *Estadísticas > Gestión*. Borrar elimina también las resoluciones y el progreso del perfil.
+Each person uses their own **profile** (for example, several people sharing one device). Each profile stores its own solves, timer settings, trainer progress (status and times of each case) and plan milestones.
 
-**Migración:** al actualizar desde la versión con sesiones, los ajustes, los hitos del plan y el progreso del entrenador que había (que eran globales) se copian a todos los perfiles existentes (las antiguas sesiones). A partir de ahí cada perfil evoluciona por separado. Un perfil creado después empieza de cero. En la versión publicada, los datos sincronizados se convierten solos al nuevo formato (un documento por perfil) tras la primera carga; el documento antiguo no se toca.
+- **Create**: *+ New profile* button in the header; it starts empty with default settings.
+- **Switch**: *Profile* selector in the header (shows the name and how many solves it has). Switching repaints the whole app with that profile's data.
+- **Rename / delete**: *Stats > Manage*. Deleting also removes the profile's solves and progress.
 
-## Dónde se guardan los datos
+**Migration:** when upgrading from the sessions version, the settings, plan milestones and trainer progress that existed (which were global) are copied to all existing profiles (the old sessions). From then on each profile evolves separately. A profile created later starts from scratch. In the published version, synced data is converted automatically to the new format (one document per profile) after the first load; the old document is left untouched.
 
-En el `localStorage` de tu navegador, bajo la clave `cubotrainer.v1`. Nada se envía a ningún servidor. Los datos son específicos de cada navegador y de cada sitio: la versión en línea, la copia local y otro navegador guardan cada una sus propios datos, y si borras los datos del sitio los pierdes. Si el navegador no permite guardar, la app funciona en memoria y te avisa con un mensaje en la parte superior.
+## Language
 
-**Recomendación:** haz copias de seguridad con regularidad desde *Estadísticas > Copia de seguridad JSON* y guarda el archivo en un lugar seguro. Puedes restaurarlo con *Importar JSON* (reemplaza todos los datos actuales).
+The app is in **English by default**. Use the **EN / ES** switch in the header to change to Spanish. The choice is remembered per browser and device (it is not part of your profile data and is not synced). The `README.es.md` file is the Spanish version of this document.
 
-## Versión como Artifact de claude.ai
+## Where data is stored
 
-La versión publicada como Artifact de claude.ai (privada, para uso personal) se sincroniza entre tus dispositivos con tu cuenta de Claude. Cada perfil se sincroniza por separado (solo se sube lo que cambió en ese dispositivo) y los cambios llegan en vivo al otro dispositivo; el perfil seleccionado es de cada dispositivo y no se sincroniza. La versión en línea y la local guardan sus datos aparte, en el navegador. Para pasar datos de una a otra: *Estadísticas > Copia de seguridad JSON* y luego *Importar JSON* en la otra.
+In your browser's `localStorage`, under the key `cubotrainer.v1`. Nothing is sent to any server. Data is specific to each browser and each site: the online version, the local copy and another browser each keep their own data, and if you clear the site data you lose it. If the browser does not allow saving, the app works in memory and shows a warning message at the top.
 
-Para regenerar el archivo a publicar: `node tools/build-artifact.js` (crea `dist/index.html` y lista los archivos `css/` y `js/` que hay que publicar con las mismas rutas).
+## Backups
 
-## Pruebas
+Make backups regularly from *Stats > JSON backup* and keep the file somewhere safe. You can restore it with *Import JSON*. **Import replaces all profiles** with the contents of the file, so export a backup first if you have data you want to keep.
+
+## claude.ai Artifact version
+
+The version published as a claude.ai Artifact (private, for personal use) syncs between the owner's devices through their Claude account. Each profile syncs separately (only what changed on that device is uploaded) and changes arrive live on the other device; the selected profile is per device and is not synced. The online and local versions keep their data separately, in the browser. To move data from one to the other: *Stats > JSON backup*, then *Import JSON* in the other.
+
+Importing JSON in the Artifact replaces all profiles on every synced device, so export a backup first.
+
+To regenerate the file to publish: `node tools/build-artifact.js` (creates `dist/index.html` and lists the `css/` and `js/` files to publish with the same paths).
+
+## Tests
 
 ```
 node tests/stats.test.js
-node tests/verify-cube.js
-node tests/sync.test.js
 node tests/storage.test.js
+node tests/sync.test.js
+node tests/verify-cube.js
+node tests/i18n.test.js
+node tests/content.test.js
+node tests/notation.test.js
 ```
 
-## Estructura
+## Structure
 
-- `index.html`, `css/styles.css`
-- `js/cube.js`, `js/algs.js`, `js/plan.js`: modelo del cubo, algoritmos y datos del plan.
-- `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistencia, estadísticas, cronómetro, entrenador, vista del plan y arranque.
+- `index.html`, `css/styles.css`, `css/notation.css`
+- `js/i18n.js`: language handling (English default, Spanish) and UI texts.
+- `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`: cube model, 3D cube drawing, algorithms and plan data (both bilingual).
+- `js/notation.js`: the Notation tab (move diagrams computed from the cube engine).
+- `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistence, statistics, timer, trainer, plan view and startup.

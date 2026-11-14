@@ -32,8 +32,13 @@ code, .alg, .scramble { font-family: ui-monospace, "SFMono-Regular", Consolas, m
 .top { background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; }
 .top-inner { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 16px 4px; max-width: 980px; margin: 0 auto; }
 .brand { font-size: 1.3rem; margin: 0; }
-.session-box { display: flex; gap: 6px; align-items: center; max-width: 100%; }
-.session-box select { max-width: 48vw; }
+.session-box { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; max-width: 100%; }
+.session-box select { flex: 1 1 130px; min-width: 0; max-width: 240px; text-overflow: ellipsis; }
+.lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+.lang-btn { background: var(--card); color: var(--muted); border: 0; padding: 4px 10px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.lang-btn:hover { background: var(--hover); color: var(--text); }
+.lang-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.lang-btn:focus-visible { outline-offset: -3px; }
 .tabs { display: flex; gap: 4px; padding: 0 16px; max-width: 980px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
 .tab { flex: 0 0 auto; background: none; border: 0; border-bottom: 3px solid transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 10px 12px; cursor: pointer; }
 .tab:hover { color: var(--text); background: var(--hover); }
@@ -120,6 +125,19 @@ details.phase.done { opacity: .85; } details.phase summary { display: flex; flex
 .modal { background: var(--card); border-radius: 14px; padding: 20px; width: 100%; max-width: 520px; max-height: 90vh; overflow: auto; position: relative; }
 .modal-x { position: absolute; top: 10px; right: 10px; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 999px; z-index: 60; font-size: .9rem; }
+@media (max-width: 560px) {
+  .brand { order: 1; flex: 1 1 auto; }
+  .lang-switch { order: 2; }
+  .sync-status { order: 3; flex: 1 1 100%; }
+  .session-box { order: 4; flex: 1 1 100%; flex-wrap: nowrap; }
+  .session-box select { flex: 1 1 auto; max-width: none; }
+  .session-box .btn { flex: 0 0 auto; white-space: nowrap; }
+  .tabs { gap: 0; padding: 0 8px; }
+  .tab { padding: 10px 8px; font-size: .9rem; }
+}
+@media (max-width: 400px) {
+  .tab { padding: 10px 6px; font-size: .86rem; }
+}
 @media (max-width: 480px) {
   .bd-row { grid-template-columns: 1fr; gap: 2px; } .bd-v { text-align: left; }
   .practice-top .ll { width: 140px; height: 140px; }
