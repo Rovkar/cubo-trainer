@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cubo Trainer</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <h1 class="brand">Cubo Trainer</h1>
+    <span id="sync-status" class="sync-status s-local" role="status"><span class="dot"></span><span class="txt">Guardado en este navegador</span></span>
+    <div class="session-box">
+      <label for="session-select" class="muted small">Perfil</label>
+      <select id="session-select" aria-label="Perfil"></select>
+      <button class="btn small-btn" id="new-session" title="Nuevo perfil">+ Nuevo perfil</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist">
+    <button class="tab on" data-tab="timer">Cronómetro</button>
+    <button class="tab" data-tab="trainer">Entrenador</button>
+    <button class="tab" data-tab="stats">Estadísticas</button>
+    <button class="tab" data-tab="plan">Plan</button>
+  </nav>
+</header>
+<div id="warn" class="warn" hidden>Tu progreso no se guardará en este navegador</div>
+<main>
+  <section id="view-timer" class="view"></section>
+  <section id="view-trainer" class="view" hidden></section>
+  <section id="view-stats" class="view" hidden></section>
+  <section id="view-plan" class="view" hidden></section>
+</main>
+<script src="js/cube.js"></script>
+<script src="js/algs.js"></script>
+<script src="js/plan.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/dialogs.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/trainer.js"></script>
+<script src="js/planview.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
