@@ -292,11 +292,7 @@
       '<button class="btn" id="m-csv" ' + d('manage.csv') + '</button><button class="btn" id="m-json" ' + d('manage.json') + '</button>' +
       '<button class="btn" id="m-imp" ' + d('manage.import') + '</button><input type="file" id="m-file" accept=".json,application/json" hidden></div></div>';
     $('st-solves').addEventListener('click', onSolveAction);
-    $('m-rename').onclick = function () {
-      Dialog.prompt(t('manage.renamePrompt'), S.activeSession().name).then(function (n) {
-        if (n && n.trim()) { S.renameSession(S.activeSession().id, n.trim()); renderAll(); }
-      });
-    };
+    $('m-rename').onclick = renameActive;
     $('m-del').onclick = function () {
       Dialog.confirm(t('manage.deleteConfirm', { name: S.activeSession().name }), { okText: t('common.delete'), danger: true }).then(function (ok) {
         if (!ok) return;
@@ -447,6 +443,16 @@
   // ---------- varios ----------
   function toast(msg) { Dialog.toast(msg); }
 
+  // Renombra el perfil activo (cabecera y Estadísticas > Gestionar): recorta, ignora vacío, máx. 40 caracteres
+  function renameActive() {
+    var cur = S.activeSession(), id = cur.id;
+    return Dialog.prompt(t('manage.renamePrompt', { name: cur.name }), cur.name).then(function (n) {
+      if (n === null || !S.renameSession(id, n)) return false;
+      renderSessions(); toast(t('profile.renamed')); // solo cambia el selector: no repinta el cronómetro (puede estar en marcha)
+      return true;
+    });
+  }
+
   function renderAll() {
     renderSessions(); renderTimerSide();
     renderPhases({ state: 'idle', splits: [], ms: 0 });
@@ -526,6 +532,7 @@
     });
     $('tabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) showTab(b.dataset.tab); });
     $('session-select').onchange = function () { if (timer) timer.reset(false); S.setActive(this.value); newScramble(); };
+    $('rename-session').onclick = renameActive;
     $('new-session').onclick = function () {
       Dialog.prompt(t('profile.newPrompt'), t('profile.default', { n: S.get().sessions.length + 1 })).then(function (n) {
         if (n === null) return;

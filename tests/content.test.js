@@ -102,12 +102,15 @@ const enSetNames = ['1 · Yellow cross', '2 · Orient corners', '3 · Permute co
 ALGS.forEach(function (x) { ok(enSetNames.indexOf(x.i18n.setName.en) >= 0, x.id + ' en setName'); });
 delete globalThis.I18N;
 
-// ---------- Spanish texts unchanged vs HEAD ----------
+// ---------- Spanish texts unchanged vs the original (Spanish-only) version ----------
+// Se compara con el primer commit del repositorio, anterior a la versión bilingüe.
 let headAlgs = null;
 let headPlan = null;
 try {
-  const algsSrc = execSync('git show HEAD:js/algs.js', { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 24 });
-  const planSrc = execSync('git show HEAD:js/plan.js', { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 24 });
+  const git = (cmd) => execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 24 });
+  const first = git('git rev-list --max-parents=0 HEAD').trim().split(/\s+/).pop();
+  const algsSrc = git('git show ' + first + ':js/algs.js');
+  const planSrc = git('git show ' + first + ':js/plan.js');
   const m = { exports: {} };
   vm.runInNewContext(algsSrc, { module: m, globalThis: {} });
   headAlgs = m.exports;
@@ -117,7 +120,7 @@ try {
 } catch (e) {
   console.log('AVISO: no se pudo leer HEAD con git; se omite la comparación (' + String(e.message).split('\n')[0] + ')');
 }
-if (headAlgs && Array.isArray(headAlgs) && headAlgs.length === 16 && typeof headAlgs[0].name === 'string') {
+if (headAlgs && Array.isArray(headAlgs) && headAlgs.length === 16 && !headAlgs[0].i18n) {
   eq(headAlgs.length, ALGS.length, 'HEAD algs length');
   headAlgs.forEach(function (h, i) {
     const x = ALGS[i];
@@ -130,12 +133,12 @@ if (headAlgs && Array.isArray(headAlgs) && headAlgs.length === 16 && typeof head
     eq(x.i18n.tip.es, h.tip, 'HEAD es tip ' + h.id);
   });
 } else if (headAlgs) {
-  console.log('AVISO: HEAD de algs.js ya es bilingüe; se omite la comparación con el original en español.');
+  console.log('AVISO: la versión original de algs.js ya es bilingüe; se omite la comparación con el original en español.');
 }
 if (headPlan && headPlan.phases && typeof headPlan.intro === 'string') {
   eq(JSON.parse(JSON.stringify(es)), JSON.parse(JSON.stringify(headPlan)), 'es plan identical to HEAD');
 } else if (headPlan) {
-  console.log('AVISO: HEAD de plan.js ya es bilingüe; se omite la comparación con el original en español.');
+  console.log('AVISO: la versión original de plan.js ya es bilingüe; se omite la comparación con el original en español.');
 }
 
 console.log(passed + ' ok, 0 fallos');

@@ -19,7 +19,7 @@ function mockClaude(opts) {
   const log = { sets: [], deletes: [], gets: 0, failSet: null };
   const subs = new Set();
   const seg = (p) => p.split('/').length;
-  const state = { paused: false };
+  const state = { paused: false, getDelay: 0, failGet: null, failGetN: 0, emptyOnce: null, failSetIf: null, cacheFirst: false };
   const meta = () => ({ fromCache: false, hasPendingWrites: false });
   const snapOf = (p, v) => ({ id: p.split('/').pop(), exists: v !== undefined, data: () => (v === undefined ? undefined : deepFreeze(JSON.parse(v))), metadata: meta() });
 
@@ -53,6 +53,7 @@ function mockClaude(opts) {
       async get() { log.gets++; return snapOf(p, store.get(p)); },
       async set(body) {
         if (log.failSet) { const f = log.failSet; log.failSet = null; throw f; }
+        if (state.failSetIf && state.failSetIf(p)) throw { code: 'invalid_argument', message: 'rechazado' };
         log.sets.push(p); store.set(p, JSON.stringify(body)); notify();
       },
       async delete() { log.deletes.push(p); store.delete(p); notify(); },
@@ -66,6 +67,9 @@ function mockClaude(opts) {
       limit() { return q; },
       async get() {
         log.gets++;
+        if (state.getDelay) await sleep(state.getDelay);
+        if (state.failGetN > 0) { state.failGetN--; throw state.failGet; }
+        if (state.emptyOnce && p.endsWith(state.emptyOnce)) { state.emptyOnce = null; return { docs: [], size: 0, empty: true, docChanges: () => [], metadata: meta() }; }
         const docs = colEntries(p).map(([k, v]) => snapOf(k, v));
         return { docs, size: docs.length, empty: !docs.length, docChanges: () => [], metadata: meta() };
       },
@@ -91,13 +95,28 @@ function mockClaude(opts) {
     pause() { state.paused = true; },
     resume() { state.paused = false; subs.forEach((s) => { if (s.timer === 'paused') s.timer = null; kick(s); }); },
     subCount: () => subs.size,
+    state,
+    // Entrega una página fromCache con el cuerpo antiguo indicado (path -> JSON) y a continuación la definitiva
+    staleThenFresh(col, stale, fresh) {
+      subs.forEach((sub) => {
+        if (sub.col !== col || sub.dead) return;
+        const cur = colEntries(col);
+        const docs = cur.map(([k, v]) => snapOf(k, stale[k] !== undefined ? stale[k] : v));
+        const changes = Object.keys(stale).map((k) => ({ type: 'modified', doc: snapOf(k, stale[k]), oldIndex: 0, newIndex: 0 }));
+        sub.next({ docs, size: docs.length, empty: false, docChanges: () => changes, metadata: { fromCache: true, hasPendingWrites: false } });
+        if (fresh) {
+          const fdocs = cur.map(([k, v]) => snapOf(k, v));
+          sub.next({ docs: fdocs, size: fdocs.length, empty: false, docChanges: () => [], metadata: meta() });
+        }
+      });
+    },
     failSubs(code) { [...subs].forEach((s) => { s.dead = true; subs.delete(s); if (s.error) s.error({ code, message: 'x' }); }); }
   };
 }
 
 // Un "dispositivo": storage.js + sync.js en un navegador falso con su propio localStorage. seedLocal se escribe antes.
-function boot(mock, seedLocal, noClaude) {
-  const ls = {};
+function boot(mock, seedLocal, noClaude, extraLs) {
+  const ls = Object.assign({}, extraLs || {});
   if (seedLocal) ls['cubotrainer.v1'] = JSON.stringify(seedLocal);
   const dev = { busy: false };
   const sb = {
@@ -391,6 +410,159 @@ const remoteSolves = (m, id) => [...m.store.keys()].filter((k) => k.startsWith(C
     mo.failSubs('revoked');
     await sleep(30);
     ok(t1.status === 'local' && t2.status === 'local', '(o) revoked -> modo local');
+  }
+  // ---------- regresiones: renombrar el perfil inicial ("Sesión 1") ----------
+  // (p) renombrar mientras el estado es "connecting" ya no se pierde cuando termina la carga inicial
+  {
+    const mp = mockClaude();
+    const e1 = boot(mp, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    const e2 = boot(mp, seed2());
+    mp.state.getDelay = 60;
+    const t2 = e2.load();
+    await sleep(15);
+    ok(t2.status === 'connecting', '(p) sigue conectando al renombrar: ' + t2.status);
+    e2.S.renameSession('S', 'Hijo');
+    mp.state.getDelay = 0;
+    await sleep(150); await settle(e1, e2);
+    ok(remoteDoc(mp, PR + 'S').name === 'Hijo', '(p) remoto: el perfil queda como Hijo (' + remoteDoc(mp, PR + 'S').name + ')');
+    ok(prof(e2, 'S').name === 'Hijo' && prof(e1, 'S').name === 'Hijo', '(p) ambos dispositivos muestran Hijo');
+    ok(JSON.parse(e2.ls['cubotrainer.v1']).sessions.filter((x) => x.id === 'S')[0].name === 'Hijo', '(p) localStorage conserva Hijo');
+    ok(e2.sync.status === 'synced', '(p) synced: ' + e2.sync.status);
+  }
+  // (q) cerrar la página antes de que venza el antirrebote: el cambio (y una resolución nueva) sobrevive a la recarga
+  {
+    const mq = mockClaude();
+    const e1 = boot(mq, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    ok(!!e1.ls['cubotrainer.sync'], '(q) se guarda la base de sincronización en localStorage');
+    const eq = boot(mq, seed2(), false, { 'cubotrainer.sync': e1.ls['cubotrainer.sync'] });
+    eq.sb.__SYNC_CFG.debounce = 1e6; // este "navegador" se cierra antes de guardar
+    eq.load();
+    await sleep(20);
+    eq.S.renameSession('S', 'Hijo2');
+    eq.S.addSolve({ time: 5555, penalty: null, scramble: 'R', date: Date.now() });
+    await sleep(30);
+    ok(remoteDoc(mq, PR + 'S').name === 'Sesión 1' && remoteSolves(mq, 'S').length === 3, '(q) sin guardar: el servidor sigue igual');
+    // recarga: localStorage de la sesión anterior (estado + base), nuevo "navegador"
+    const er = boot(mq, JSON.parse(eq.ls['cubotrainer.v1']), false, { 'cubotrainer.sync': eq.ls['cubotrainer.sync'] });
+    const tr = er.load();
+    await sleep(40); await tr.idle();
+    ok(prof(er, 'S').name === 'Hijo2' && remoteDoc(mq, PR + 'S').name === 'Hijo2', '(q) tras recargar el nombre sigue siendo Hijo2 y se subió (' + remoteDoc(mq, PR + 'S').name + ')');
+    ok(remoteSolves(mq, 'S').some((x) => x.time === 5555) && prof(er, 'S').solves.some((x) => x.time === 5555), '(q) la resolución antigua sin guardar se conserva y se sube');
+    // sin cambios locales se adopta lo que cambió otro dispositivo
+    e1.S.renameSession('R', 'Papa2');
+    await settle(e1);
+    const es = boot(mq, JSON.parse(er.ls['cubotrainer.v1']), false, { 'cubotrainer.sync': er.ls['cubotrainer.sync'] });
+    const ts = es.load(); await sleep(40); await ts.idle();
+    ok(prof(es, 'R').name === 'Papa2' && prof(es, 'S').name === 'Hijo2', '(q) sin cambios locales se adopta el remoto (Papa2) y se mantiene Hijo2');
+  }
+  // (r) dispositivo desfasado: cambiar un ajuste no devuelve el nombre antiguo (fusión campo a campo)
+  {
+    const mr = mockClaude();
+    const d1 = boot(mr, seed2()); const s1 = d1.load();
+    await sleep(20); await s1.idle();
+    const d2 = boot(mr, seed2()); const s2 = d2.load();
+    await settle(d1, d2);
+    mr.pause(); // el 2 no recibe el cambio del 1
+    d1.S.renameSession('S', 'Hijo');
+    await sleep(30); await s1.idle();
+    ok(remoteDoc(mr, PR + 'S').name === 'Hijo' && prof(d2, 'S').name === 'Sesión 1', '(r) el 2 sigue desfasado');
+    d2.S.setting('inspection', true);
+    d2.S.setCaseStatus('eo-line', 'dominado');
+    await sleep(40); await s2.idle();
+    const rd = remoteDoc(mr, PR + 'S');
+    ok(rd.name === 'Hijo' && rd.settings.inspection === true && rd.trainer.status['eo-line'] === 'dominado', '(r) remoto conserva el nombre y añade los ajustes: ' + rd.name);
+    mr.resume();
+    await settle(d1, d2);
+    ok(prof(d1, 'S').name === 'Hijo' && prof(d2, 'S').name === 'Hijo', '(r) ambos nombres = Hijo');
+    ok(prof(d1, 'S').settings.inspection === true && prof(d2, 'S').settings.inspection === true && prof(d1, 'S').trainer.status['eo-line'] === 'dominado', '(r) ambos dispositivos reciben los ajustes');
+    // cambios simultáneos pendientes en los dos lados: se conservan ambos (reconcile funde)
+    mr.pause();
+    d1.S.renameSession('S', 'Hijo3');
+    d2.S.setting('hideTime', true);
+    mr.resume();
+    await settle(d1, d2);
+    const rf = remoteDoc(mr, PR + 'S');
+    ok(rf.name === 'Hijo3' && rf.settings.hideTime === true && prof(d1, 'S').settings.hideTime === true && prof(d2, 'S').name === 'Hijo3', '(r) rename y ajuste simultáneos: ninguno se pierde');
+  }
+  // (s) fallo de conexión inicial: el gancho ya está activo, reintenta y sube lo editado entre tanto
+  {
+    const ms2 = mockClaude();
+    const e1 = boot(ms2, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    const e2 = boot(ms2, seed2());
+    e2.sb.__SYNC_CFG.retryMin = 40; e2.sb.__SYNC_CFG.retryRange = 5;
+    ms2.state.failGet = { code: 'resource_exhausted', message: 'cupo' }; ms2.state.failGetN = 1;
+    const t2 = e2.load();
+    await sleep(20);
+    ok(t2.status === 'error', '(s) fallo de lectura inicial -> error: ' + t2.status);
+    e2.S.renameSession('S', 'Hijo');
+    await sleep(200); await settle(e2);
+    ok(t2.status === 'synced', '(s) reintenta en segundo plano y queda synced: ' + t2.status);
+    ok(remoteDoc(ms2, PR + 'S').name === 'Hijo' && prof(e2, 'S').name === 'Hijo', '(s) el nombre editado durante el error se subió');
+  }
+  // (t) un trozo rechazado no bloquea el documento del perfil; al arreglarse, se reintenta solo
+  {
+    const mt = mockClaude();
+    const e1 = boot(mt, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    mt.state.failSetIf = (p) => p.includes('/chunks/');
+    e1.S.addSolve({ time: 1234, penalty: null, scramble: 'U', date: Date.now() });
+    e1.S.renameSession('S', 'Hijo');
+    await sleep(60); await t1.idle();
+    ok(remoteDoc(mt, PR + 'S').name === 'Hijo', '(t) el perfil se escribe aunque el trozo falle');
+    ok(t1.status === 'error' && !remoteSolves(mt, 'S').some((x) => x.time === 1234), '(t) el trozo sigue pendiente y el estado es error: ' + t1.status);
+    mt.state.failSetIf = null;
+    e1.S.renameSession('R', 'Papa3'); // la siguiente edición reintenta lo pendiente
+    await sleep(80); await settle(e1);
+    ok(remoteSolves(mt, 'S').some((x) => x.time === 1234) && t1.status === 'synced', '(t) el trozo pendiente se sube después: ' + t1.status);
+  }
+  // (u) páginas fromCache antiguas no revierten un cambio propio; una página definitiva sí aporta altas perdidas
+  {
+    const mu = mockClaude();
+    const e1 = boot(mu, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    e1.S.renameSession('S', 'Mateo');
+    await settle(e1);
+    const old = JSON.parse(mu.store.get(PR + 'S')); old.name = 'Sesión 1';
+    mu.staleThenFresh(P + '/profiles', { [PR + 'S']: JSON.stringify(old) }, true);
+    await sleep(30); await t1.idle();
+    ok(prof(e1, 'S').name === 'Mateo' && remoteDoc(mu, PR + 'S').name === 'Mateo', '(u) una página antigua fromCache no revierte el nombre');
+    // otro dispositivo crea un perfil; su alta llega solo en la página definitiva (docs), sin docChanges
+    mu.store.set(PR + 'Z', JSON.stringify({ id: 'Z', name: 'Nueva', created: 9, settings: {}, trainer: {}, plan: {} }));
+    mu.store.set(CH + 'Z_0', JSON.stringify({ sessionId: 'Z', k: 0, solves: [] }));
+    mu.staleThenFresh(P + '/profiles', {}, true);
+    mu.staleThenFresh(P + '/chunks', {}, true);
+    await sleep(30); await settle(e1);
+    ok(!!prof(e1, 'Z') && prof(e1, 'Z').name === 'Nueva', '(u) la página definitiva aporta el perfil nuevo');
+  }
+  // (v) primer get() de perfiles vacío con meta antiguo existente: no se pisan los perfiles reales
+  {
+    const mv = mockClaude();
+    const e1 = boot(mv, seed2()); const t1 = e1.load();
+    await sleep(20); await t1.idle();
+    e1.S.renameSession('S', 'Mateo');
+    await settle(e1);
+    mv.store.set(P, JSON.stringify({ v: 2, rev: 3, activeSessionId: 'S', sessions: [{ id: 'S', name: 'Sesión 1', created: 1, chunks: 1, settings: {}, trainer: {}, plan: {} }, { id: 'R', name: 'Papa', created: 2, chunks: 1 }] }));
+    const e2 = boot(mv, null);
+    e2.sb.__SYNC_CFG.retryMin = 10; e2.sb.__SYNC_CFG.retryRange = 5;
+    mv.state.emptyOnce = '/profiles';
+    mv.log.sets.length = 0;
+    e2.load();
+    await sleep(120); await settle(e2);
+    ok(remoteDoc(mv, PR + 'S').name === 'Mateo' && !mv.log.sets.some((x) => x.startsWith(PR)), '(v) no se reescribe ningún perfil existente: ' + mv.log.sets.join(','));
+    ok(prof(e2, 'S') && prof(e2, 'S').name === 'Mateo', '(v) el dispositivo carga el nombre real tras reintentar');
+  }
+  // (w) la fusión de tres vías
+  {
+    const mod = require('../js/sync.js');
+    const b = { name: 'A', settings: { x: 1, y: 1 }, plan: { milestones: { m: true } } };
+    const l = { name: 'A', settings: { x: 2, y: 1 }, plan: { milestones: { m: true } } };
+    const r = { name: 'B', settings: { x: 1, y: 3 }, plan: { milestones: {} } };
+    const mg = mod.merge3(b, l, r);
+    ok(mg.name === 'B' && mg.settings.x === 2 && mg.settings.y === 3 && !('m' in mg.plan.milestones), '(w) merge3 combina campos distintos de local y remoto');
+    ok(mod.merge3({ n: 1 }, { n: 2 }, { n: 3 }).n === 2, '(w) conflicto en la misma hoja: gana el local');
   }
   console.log(fails ? fails + ' fallos' : 'todo ok');
   process.exit(fails ? 1 : 0);

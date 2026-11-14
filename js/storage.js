@@ -88,11 +88,19 @@
   }
   function newSession(name) {
     var d = get();
-    var s = fixProfile({ id: uid(), name: name || defName(d.sessions.length + 1), created: Date.now(), solves: [] }, {}, d.sessions.length + 1);
+    var s = fixProfile({ id: uid(), name: cleanName(name) || defName(d.sessions.length + 1), created: Date.now(), solves: [] }, {}, d.sessions.length + 1);
     d.sessions.push(s); d.activeSessionId = s.id; save(); return s;
   }
+  // Nombre de perfil: sin espacios sobrantes y de 40 caracteres como máximo ('' = no válido)
+  var NAME_MAX = 40;
+  function cleanName(n) { return n == null ? '' : String(n).trim().slice(0, NAME_MAX).trim(); }
+  // Devuelve true si el nombre cambió (un nombre vacío se ignora)
   function renameSession(id, name) {
-    get().sessions.forEach(function (s) { if (s.id === id && name) s.name = name; }); save();
+    var nm = cleanName(name), changed = false;
+    if (!nm) return false;
+    get().sessions.forEach(function (s) { if (s.id === id && s.name !== nm) { s.name = nm; changed = true; } });
+    if (changed) save();
+    return changed;
   }
   function deleteSession(id) {
     var d = get();
@@ -139,7 +147,7 @@
     addSolve: addSolve, deleteSolve: deleteSolve, setPenalty: setPenalty, setting: setting, settings: settings, milestones: milestones,
     setCaseStatus: setCaseStatus, caseStatus: caseStatus, addCaseTime: addCaseTime, caseTimes: caseTimes,
     setMilestone: setMilestone, exportAll: exportAll, importAll: importAll,
-    setSaveHook: setSaveHook, replaceAll: replaceAll, onReplace: onReplace
+    setSaveHook: setSaveHook, replaceAll: replaceAll, onReplace: onReplace, cleanName: cleanName, NAME_MAX: NAME_MAX
   };
   root.escHtml = function (s) {
     return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });

@@ -19,6 +19,7 @@
 
       'profile.label': 'Profile', 'profile.new.title': 'New profile', 'profile.new.btn': '+ New profile',
       'profile.default': 'Profile {n}', 'profile.newPrompt': 'Name for the new profile',
+      'profile.rename.title': 'Rename profile', 'profile.renamed': 'Profile renamed',
       'profile.opt.one': '{name} ({n} solve)', 'profile.opt.many': '{name} ({n} solves)',
 
       'tab.timer': 'Timer', 'tab.trainer': 'Trainer', 'tab.stats': 'Stats', 'tab.plan': 'Plan', 'tab.notation': 'Notation',
@@ -53,7 +54,7 @@
       'stats.noPhaseData': 'No per-phase data yet. Turn on <b>Phase mode</b> in the Timer settings and do a few solves to see where you lose the most time here.',
       'stats.phaseAvg': 'Average of your last {n} solves with phases.', 'stats.slowest': 'Slowest',
 
-      'manage.rename': 'Rename profile', 'manage.renamePrompt': 'New profile name', 'manage.delete': 'Delete profile', 'manage.csv': 'Export CSV',
+      'manage.rename': 'Rename profile', 'manage.renamePrompt': 'New name for "{name}"', 'manage.delete': 'Delete profile', 'manage.csv': 'Export CSV',
       'manage.json': 'JSON backup', 'manage.import': 'Import JSON',
       'manage.deleteConfirm': 'Delete profile "{name}" with all its solves and progress?',
       'manage.importConfirm': 'Importing will replace ALL your current data. Continue?',
@@ -93,6 +94,7 @@
 
       'profile.label': 'Perfil', 'profile.new.title': 'Nuevo perfil', 'profile.new.btn': '+ Nuevo perfil',
       'profile.default': 'Perfil {n}', 'profile.newPrompt': 'Nombre del nuevo perfil',
+      'profile.rename.title': 'Renombrar perfil', 'profile.renamed': 'Perfil renombrado',
       'profile.opt.one': '{name} ({n} resolución)', 'profile.opt.many': '{name} ({n} resoluciones)',
 
       'tab.timer': 'Cronómetro', 'tab.trainer': 'Entrenador', 'tab.stats': 'Estadísticas', 'tab.plan': 'Plan', 'tab.notation': 'Notación',
@@ -127,7 +129,7 @@
       'stats.noPhaseData': 'Aún no hay datos por fase. Activa el <b>modo Fases</b> en los ajustes del Cronómetro y haz unas cuantas resoluciones para ver aquí en qué parte pierdes más tiempo.',
       'stats.phaseAvg': 'Media de tus últimas {n} resoluciones con fases.', 'stats.slowest': 'Más lenta',
 
-      'manage.rename': 'Renombrar perfil', 'manage.renamePrompt': 'Nuevo nombre del perfil', 'manage.delete': 'Borrar perfil', 'manage.csv': 'Exportar CSV',
+      'manage.rename': 'Renombrar perfil', 'manage.renamePrompt': 'Nuevo nombre para "{name}"', 'manage.delete': 'Borrar perfil', 'manage.csv': 'Exportar CSV',
       'manage.json': 'Copia de seguridad JSON', 'manage.import': 'Importar JSON',
       'manage.deleteConfirm': '¿Borrar el perfil "{name}" con todas sus resoluciones y su progreso?',
       'manage.importConfirm': 'Importar reemplazará TODOS tus datos actuales. ¿Continuar?',

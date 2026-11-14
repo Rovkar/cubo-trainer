@@ -6,8 +6,13 @@
   //   data/users/<uid>/meta/chunks/<perfilId>_<k> -> { sessionId, k, solves }
   // El perfil activo (activeSessionId) es de cada dispositivo y nunca se escribe en remoto.
   // El documento "meta" de las versiones 1 y 2 solo se lee (migración) y no se modifica jamás.
+  // Además se guarda en este navegador (cubotrainer.sync) la última base conocida del servidor, para que los
+  // cambios locales aún no subidos (renombrar mientras conecta, cerrar la página antes de guardar) sobrevivan
+  // a la siguiente carga en lugar de ser sustituidos por el estado remoto.
   var CHUNK_SIZE = 400;
+  var SYNC_KEY = 'cubotrainer.sync';
   var ERR_LOCAL = { revoked: 1, not_granted: 1, capability_disabled: 1, capability_removed: 1 };
+  var ERR_FINAL = { invalid_argument: 1, quota_exceeded: 1, transform_error: 1 }; // reintentar no puede tener éxito
 
   // JSON canónico (claves ordenadas): compara cuerpos sin depender del orden de claves
   function canon(v) {
@@ -17,9 +22,40 @@
     return '{' + ks.map(function (k) { return JSON.stringify(k) + ':' + canon(v[k]); }).join(',') + '}';
   }
   function clone(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
+  function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+  // Hash corto (cyrb53) para recordar el contenido de los trozos sin duplicarlos en localStorage
+  function hash(str) {
+    var h1 = 0xdeadbeef, h2 = 0x41c6ce57, ch;
+    for (var i = 0; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36) + ':' + str.length;
+  }
+  // Fusión de tres vías campo a campo: b = base, l = local, r = remoto. Un cambio en un solo lado se conserva;
+  // si ambos cambiaron el mismo valor hoja, gana el local (es el que se va a escribir).
+  function merge3(b, l, r) {
+    var cl = canon(l), cr = canon(r);
+    if (cl === cr) return l;
+    var cb = canon(b);
+    if (cl === cb) return r;
+    if (cr === cb) return l;
+    if (isObj(l) && isObj(r) && (isObj(b) || b === undefined)) {
+      var out = {}, ks = {};
+      [b, l, r].forEach(function (o) { if (isObj(o)) Object.keys(o).forEach(function (k) { ks[k] = 1; }); });
+      Object.keys(ks).forEach(function (k) {
+        var v = merge3(b === undefined ? undefined : b[k], l[k], r[k]);
+        if (v !== undefined) out[k] = v;
+      });
+      return out;
+    }
+    return l;
+  }
 
   function create(env) {
-    var cfg = Object.assign({ debounce: 700, retryMin: 1000, retryRange: 1000, busyRetry: 1000 }, env.__SYNC_CFG || {});
+    var cfg = Object.assign({ debounce: 700, retryMin: 1000, retryRange: 1000, retryMax: 30000, busyRetry: 1000 }, env.__SYNC_CFG || {});
     var Storage = env.Storage;
     var pageLoadTime = Date.now();
     var status = 'connecting', detail = '';
@@ -31,6 +67,8 @@
     var writing = {}, touched = {};
     var timer = null, flushing = false, dirty = false, applyTimer = null;
     var unsubs = [], resubscribed = false;
+    var uid = null, persisted = null, startBase = {}, lastPersisted = null, hashMemo = {};
+    var needFull = {}, retryTimer = null, retries = 0, hooked = false;
 
     function setStatus(s, d) {
       status = s; detail = d || '';
@@ -46,6 +84,7 @@
       mode = 'local';
       if (timer) { clearTimeout(timer); timer = null; }
       if (applyTimer) { clearTimeout(applyTimer); applyTimer = null; }
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
       unsubscribeAll();
       setStatus('local');
     }
@@ -65,23 +104,66 @@
     }
     function isProfilePath(path) { return path.indexOf(profRef.path + '/') === 0; }
 
-    function chunkize(pid, solves) {
+    function chunkize(pid, solves, cp) {
+      cp = cp || chunksRef.path;
       var docs = {}, n = 0;
       for (var i = 0; i < solves.length; i += CHUNK_SIZE, n++) {
-        docs[chunksRef.path + '/' + pid + '_' + n] = { sessionId: pid, k: n, solves: solves.slice(i, i + CHUNK_SIZE) };
+        docs[cp + '/' + pid + '_' + n] = { sessionId: pid, k: n, solves: solves.slice(i, i + CHUNK_SIZE) };
       }
       return docs;
     }
-    function localDocsOf(data) {
+    function docsOf(data, pp, cp) {
       var docs = {};
       data.sessions.forEach(function (s) {
-        docs[profRef.path + '/' + s.id] = { id: s.id, name: s.name, created: s.created, settings: s.settings, trainer: s.trainer, plan: s.plan };
-        var c = chunkize(s.id, s.solves || []);
+        docs[pp + '/' + s.id] = { id: s.id, name: s.name, created: s.created, settings: s.settings, trainer: s.trainer, plan: s.plan };
+        var c = chunkize(s.id, s.solves || [], cp);
         Object.keys(c).forEach(function (p) { docs[p] = c[p]; });
       });
       return docs;
     }
+    function localDocsOf(data) { return docsOf(data, profRef.path, chunksRef.path); }
     function localDocs() { return localDocsOf(Storage.get()); }
+
+    // Claves relativas (profiles/<id>, chunks/<id>_<k>), independientes del uid, para la base persistida:
+    // perfiles = JSON canónico completo (permite fundir campo a campo), trozos = solo su hash
+    function keyOf(rp, body) { var c = canon(body); return rp.indexOf('profiles/') === 0 ? c : hash(c); }
+    function relKeys(data) {
+      var d = docsOf(data, 'profiles', 'chunks'), o = {};
+      Object.keys(d).forEach(function (rp) { o[rp] = keyOf(rp, d[rp]); });
+      return o;
+    }
+    function rel(p) { return p.slice(metaRef.path.length + 1); }
+    function relChunkPid(rp) {
+      if (rp.indexOf('chunks/') !== 0) return null;
+      var id = rp.slice(7), i = id.lastIndexOf('_');
+      return i < 0 ? null : id.slice(0, i);
+    }
+    // Lo que había localmente al cargar la página: base de respaldo si no hay base persistida
+    var baseline = (function () { try { return relKeys(Storage.get()); } catch (e) { return {}; } })();
+
+    function loadPersisted() {
+      try {
+        var raw = env.localStorage.getItem(SYNC_KEY), o = raw ? JSON.parse(raw) : null;
+        if (o && o.v === 1 && o.uid === uid && isObj(o.base)) { lastPersisted = raw; return o.base; }
+      } catch (e) { /* sin base persistida */ }
+      return null;
+    }
+    function persistBase() {
+      if (!uid || !metaRef) return;
+      var base = {};
+      Object.keys(lastSynced).forEach(function (p) {
+        var k = lastSynced[p], rp = rel(p);
+        if (rp.indexOf('profiles/') === 0) base[rp] = k;
+        else {
+          var m = hashMemo[p];
+          if (!m || m[0] !== k) m = hashMemo[p] = [k, hash(k)];
+          base[rp] = m[1];
+        }
+      });
+      var str = JSON.stringify({ v: 1, uid: uid, base: base });
+      if (str === lastPersisted) return;
+      try { env.localStorage.setItem(SYNC_KEY, str); lastPersisted = str; } catch (e) { /* ignorar */ }
+    }
 
     // Reconstruye el estado local a partir de perfiles (con o sin campo chunks) y trozos
     function fromRemote(meta, chunkDocs) {
@@ -136,8 +218,51 @@
       return merged;
     }
 
+    // Cambios hechos en ESTE dispositivo que el servidor aún no tiene (editados desde la última sincronización
+    // o mientras se conectaba) se conservan sobre el estado remoto en lugar de perderse.
+    function mergeProfile(rs, ls) {
+      var abs = profRef.path + '/' + rs.id, r = remote[abs], bk = startBase['profiles/' + rs.id];
+      if (!r || bk === undefined) return;
+      var Ld = docsOf({ sessions: [ls] }, profRef.path, chunksRef.path)[abs], lk = canon(Ld);
+      if (lk === r.key || lk === bk) return; // iguales al servidor o sin cambios locales
+      var merged = clone(r.key === bk ? Ld : merge3(JSON.parse(bk), Ld, r.body));
+      rs.name = merged.name; rs.created = merged.created;
+      rs.settings = merged.settings; rs.trainer = merged.trainer; rs.plan = merged.plan;
+    }
+    function mergeSolves(rs, ls) {
+      var pid = rs.id, lc = chunkize(pid, ls.solves || [], 'chunks'), edited = false, nBase = 0, rp;
+      for (rp in lc) if (keyOf(rp, lc[rp]) !== startBase[rp]) edited = true;
+      for (rp in startBase) if (relChunkPid(rp) === pid) { nBase++; if (!lc[rp]) edited = true; }
+      if (!edited) return;
+      var same = true, nRem = 0;
+      Object.keys(remote).forEach(function (p) {
+        if (chunkPid(p) === pid) { nRem++; if (hash(remote[p].key) !== startBase[rel(p)]) same = false; }
+      });
+      if (nRem !== nBase) same = false;
+      if (same) { rs.solves = clone(ls.solves || []); return; } // el servidor no cambió: gana lo local
+      var present = {}, added = false;      // ambos cambiaron: unión por id
+      rs.solves.forEach(function (x) { present[x.id] = true; });
+      (ls.solves || []).forEach(function (x) { if (!present[x.id]) { rs.solves.push(clone(x)); present[x.id] = true; added = true; } });
+      if (added) rs.solves.sort(function (a, c) { return (a.date || 0) - (c.date || 0); });
+    }
+    function mergeLocalEdits(state) {
+      var local = Storage.get(), byId = {}, inState = {};
+      local.sessions.forEach(function (s) { byId[s.id] = s; });
+      state.sessions.forEach(function (rs) {
+        inState[rs.id] = true;
+        if (byId[rs.id]) { mergeProfile(rs, byId[rs.id]); mergeSolves(rs, byId[rs.id]); }
+      });
+      // Perfiles creados aquí y aún no subidos (no estaban en la base ni al cargar la página): se conservan.
+      // Los que sí estaban y ya no existen en el servidor se borraron en otro dispositivo (o son un marcador local).
+      local.sessions.forEach(function (ls) {
+        if (!inState[ls.id] && startBase['profiles/' + ls.id] === undefined) state.sessions.push(clone(ls));
+      });
+    }
+
     async function initialLoad() {
+      unsubscribeAll(); mode = 'connecting';
       remote = {}; lastSynced = {};
+      startBase = persisted || baseline;
       var ps = await profRef.limit(1000).get();
       var profBodies = ps.docs.map(function (d) { return d.data(); });
       var state, cs, metaV = 0;
@@ -166,6 +291,11 @@
         // Migración desde el meta antiguo (v1/v2): solo se lee, nunca se modifica
         var meta = ms.data();
         metaV = meta.v;
+        // Un resultado vacío poco fiable no debe llevar a pisar perfiles que sí existen: se comprueba cada uno
+        var existing = await Promise.all((meta.sessions || []).map(function (s) { return profRef.doc(s.id).get(); }));
+        if (existing.some(function (d) { return d.exists; })) {
+          var ue = new Error('profiles not visible yet'); ue.code = 'unavailable'; throw ue;
+        }
         cs = await chunksRef.limit(1000).get();
         state = fromRemote(meta, cs.docs.map(function (d) { return d.data(); }));
         var ids = {};
@@ -177,11 +307,13 @@
         });
         // Los documentos de perfil no existen aún: no están en lastSynced, así que flush los crea
       }
+      mergeLocalEdits(state);
       mergeLocalNew(state);
       mode = 'db';
       keepLocalActive(state);
       Storage.replaceAll(state, { silent: true });
       subscribe();
+      persistBase();
       if (hasPending()) schedule(0); else setStatus('synced');
     }
 
@@ -202,6 +334,28 @@
       if (!touched[p]) remote[p] = { key: key, body: clone(body) };
       else scheduleApply(); // llegó otra versión mientras escribíamos: se reconcilia
     }
+    // Perfil existente: se lee el documento del servidor y se funde campo a campo (base = lastSynced), de modo que un
+    // dispositivo desfasado que cambia un ajuste no devuelva el nombre antiguo que otro ya había cambiado.
+    async function writeProfile(p, body, key) {
+      var baseKey = lastSynced[p];
+      if (baseKey === undefined) return writeDoc(p, body, key);
+      writing[p] = true; touched[p] = false;
+      var out = body, outKey = key;
+      try {
+        var cur = await db.doc(p).get(), ck;
+        if (cur.exists) {
+          var cd = clone(cur.data()); ck = canon(cd);
+          if (ck !== baseKey) { out = merge3(JSON.parse(baseKey), body, cd); outKey = canon(out); }
+        }
+        if (!cur.exists || ck !== outKey) await db.doc(p).set(out);
+      } finally { writing[p] = false; }
+      lastSynced[p] = key; // si se fundió algo del remoto, reconcile lo adopta en local (ahí local == base)
+      if (touched[p]) scheduleApply();
+      else {
+        remote[p] = { key: outKey, body: clone(out) };
+        if (outKey !== key) scheduleApply();
+      }
+    }
     async function deleteDoc(p) {
       writing[p] = true; touched[p] = false;
       try { await db.doc(p).delete(); }
@@ -220,19 +374,28 @@
         if (!ops.length) return;
         // trozos antes que el perfil al crear; perfil antes que sus trozos al borrar
         ops.sort(function (a, b) { return a.rank - b.rank; });
+        // Cada documento se intenta por separado: un fallo (p. ej. un trozo) no debe impedir escribir el resto
+        // (el perfil). Se corta solo ante errores que afectan a todo (acceso retirado, puente caído).
+        var firstErr = null;
         for (var i = 0; i < ops.length; i++) {
           var op = ops[i], cur = localDocs();
-          if (op.t === 'set') {
-            var body = cur[op.p];
-            if (!body) continue;
-            var key = canon(body);
-            if (lastSynced[op.p] === key) continue;
-            await writeDoc(op.p, body, key);
-          } else {
-            if (cur[op.p] || lastSynced[op.p] === undefined) continue;
-            await deleteDoc(op.p);
+          try {
+            if (op.t === 'set') {
+              var body = cur[op.p];
+              if (!body) continue;
+              var key = canon(body);
+              if (lastSynced[op.p] === key) continue;
+              if (isProfilePath(op.p)) await writeProfile(op.p, body, key); else await writeDoc(op.p, body, key);
+            } else {
+              if (cur[op.p] || lastSynced[op.p] === undefined) continue;
+              await deleteDoc(op.p);
+            }
+          } catch (e) {
+            if (!firstErr) firstErr = e;
+            if (e && (ERR_LOCAL[e.code] || e.code === 'unavailable')) break;
           }
         }
+        if (firstErr) throw firstErr;
       }
     }
 
@@ -251,11 +414,26 @@
           } else throw e;
         }
         ok = true;
-      } catch (e) { handleError(e); }
+      } catch (e) {
+        handleError(e);
+        if (mode === 'db' && !(e && ERR_FINAL[e.code])) scheduleRetry();
+      }
+      persistBase();
       flushing = false;
       if (mode !== 'db') return;
+      if (ok) retries = 0;
       if (dirty) { dirty = false; schedule(0); }
       else if (ok) setStatus('synced');
+    }
+    // Tras un fallo no definitivo se reintenta en segundo plano con espera creciente (sin esperar a la siguiente edición)
+    function scheduleRetry() {
+      if (retryTimer || mode !== 'db') return;
+      var wait = Math.min(cfg.retryMax, cfg.retryMin * Math.pow(2, retries++)) + Math.random() * cfg.retryRange;
+      retryTimer = setTimeout(function () { retryTimer = null; if (mode === 'db' && hasPending()) schedule(0); }, wait);
+    }
+    // Al ocultar o cerrar la página no se espera al antirrebote
+    function flushNow() {
+      if (mode === 'db' && timer) { clearTimeout(timer); timer = null; flush(); }
     }
 
     // ---------- cambios en vivo ----------
@@ -280,12 +458,23 @@
 
     function onSnap(prefix, snap) {
       if (mode !== 'db') return;
+      // Las páginas fromCache pueden ser antiguas (primeras páginas o corte de conexión): no se aplican; la
+      // siguiente página definitiva llega sola. Como sus cambios pudieron no repetirse, esa página se vuelca entera.
+      var md = snap.metadata;
+      if (md && md.fromCache) { needFull[prefix] = true; return; }
       snap.docChanges().forEach(function (ch) {
         var p = prefix + '/' + ch.doc.id;
         if (ch.type === 'removed') delete remote[p];
         else setRemote(p, ch.doc.data());
         if (writing[p]) touched[p] = true;
       });
+      if (needFull[prefix] !== false) { // solo altas y cambios: la ausencia en una página nunca borra datos
+        snap.docs.forEach(function (d) {
+          var p = prefix + '/' + d.id, body = d.data();
+          if (!remote[p] || remote[p].key !== canon(body)) { setRemote(p, body); if (writing[p]) touched[p] = true; }
+        });
+        needFull[prefix] = false;
+      }
       scheduleApply();
     }
 
@@ -326,8 +515,18 @@
       diff.filter(isProfilePath).forEach(function (q) {
         var r = rk(q), b = lastSynced[q], l = lk(q);
         if (l === r) { setSynced(q, r); return; }   // ya coinciden (p. ej. eco de una escritura propia)
-        if (l !== b) return;                         // cambio local pendiente: gana el local
         var pid = q.slice(profRef.path.length + 1);
+        if (l !== b) {                               // cambio local pendiente
+          if (r === undefined || b === undefined) return;   // perfil nuevo aquí o borrado en el otro: gana el local
+          // cambiaron los dos: se funde campo a campo (base = lo último sincronizado); lo local pendiente se sube después
+          var mg = clone(merge3(JSON.parse(b), L[q], remote[q].body)), ms = findSession(data, pid);
+          if (ms) {
+            ms.name = mg.name; ms.created = mg.created;
+            ms.settings = mg.settings; ms.trainer = mg.trainer; ms.plan = mg.plan;
+            lastSynced[q] = r; changed = true;
+          }
+          return;
+        }
         if (r === undefined) {                       // perfil eliminado en el otro dispositivo
           data.sessions = data.sessions.filter(function (s) { return s.id !== pid; });
           delete lastSynced[q];
@@ -378,28 +577,55 @@
         Storage.replaceAll(data, { silent: true });
         if (hasPending()) schedule();
       }
+      persistBase();
     }
 
     // ---------- arranque ----------
+    // Conecta con reintentos en segundo plano: un fallo de lectura no deja el dispositivo sin sincronizar para siempre.
+    async function connect() {
+      for (var attempt = 1; ; attempt++) {
+        try { await initialLoad(); return; }
+        catch (e) {
+          if (mode === 'local') return;
+          if (e && ERR_LOCAL[e.code]) return goLocal();
+          if (e && e.code === 'unavailable' && attempt === 1) { // primer fallo transitorio: un reintento en silencio
+            await sleep(cfg.retryMin + Math.random() * cfg.retryRange);
+            continue;
+          }
+          handleError(e);
+          if (e && ERR_FINAL[e.code]) return;
+          await sleep(Math.min(cfg.retryMax, cfg.retryMin * Math.pow(2, attempt - 1)) + Math.random() * cfg.retryRange);
+          if (mode === 'local') return;
+        }
+      }
+    }
+
     async function start() {
+      // El gancho de guardado se instala ya: las ediciones hechas mientras se conecta quedan en el estado local y
+      // initialLoad las conserva (compara con la base) y las sube; antes se descartaban en silencio.
+      if (!hooked) {
+        hooked = true;
+        Storage.setSaveHook(function () { schedule(); });
+        try {
+          if (env.document && typeof env.document.addEventListener === 'function') {
+            env.document.addEventListener('visibilitychange', function () { if (env.document.visibilityState === 'hidden') flushNow(); });
+          }
+          if (typeof env.addEventListener === 'function') env.addEventListener('pagehide', flushNow);
+        } catch (e) { /* ignorar */ }
+      }
       if (!env.claude || typeof env.claude.use !== 'function') return goLocal();
       setStatus('connecting');
       try {
         var res = await Promise.all([env.claude.use('db'), env.claude.use('user')]);
         if (!res[0] || !res[1]) return goLocal();
-        var uid = await res[1].id();
+        uid = await res[1].id();
         if (!uid) return goLocal();
         db = res[0];
         metaRef = db.doc('data/users/' + uid + '/meta');
         profRef = metaRef.collection('profiles');
         chunksRef = metaRef.collection('chunks');
-        try { await initialLoad(); }
-        catch (e) {
-          if (!e || e.code !== 'unavailable') throw e;
-          await sleep(cfg.retryMin + Math.random() * cfg.retryRange);
-          await initialLoad();
-        }
-        Storage.setSaveHook(function () { schedule(); });
+        persisted = loadPersisted();
+        await connect();
       } catch (e) { handleError(e); }
     }
 
@@ -417,7 +643,7 @@
     return api;
   }
 
-  var Sync = { create: create };
+  var Sync = { create: create, merge3: merge3, canon: canon, hash: hash };
   if (typeof module !== 'undefined' && module.exports) { module.exports = Sync; }
   else {
     root.Sync = create(root);
