@@ -33,9 +33,6 @@
 .nt-callout { margin: 0; border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--card)); padding: 8px 10px; border-radius: 0 8px 8px 0; font-size: .86rem; }
 .nt-quick { margin: 0; font-size: .84rem; color: var(--muted); }
 
-/* Selector 3x3 / 4x4 */
-.nt-size { margin-bottom: 14px; }
-
 /* Seccion 4x4: prefijo n4- (reutiliza nt-*) */
 .nt .n4-card .nt-mv, .nt .n4-kinds .nt-mv { flex-basis: 4.6ch; }
 .n4-group { margin: 18px 0 8px; font-size: 1rem; }

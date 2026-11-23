@@ -230,7 +230,8 @@
     },
 
     // View of the last layer (top layer + the top row of the four sides), generalizing Cube.lastLayerView.
-    // mask 'oll': yellow vs 'x'; 'pll' or none: colors. u has 16 stickers, b/r/f/l have 4 (seen from above:
+    // mask 'oll': yellow vs 'x'; 'eo': corners x, centers kept, edge wings yellow-or-x; 'cp': side edge wings x;
+    // 'pll' or none: colors. u has 16 stickers, b/r/f/l have 4 (seen from above:
     // b and r run left-to-right / top-to-bottom as drawn around the top face).
     lastLayerView(state, mask) {
       const u = state.U.slice();
@@ -239,10 +240,18 @@
       const f = [state.F[0], state.F[1], state.F[2], state.F[3]];
       const l = [state.L[0], state.L[1], state.L[2], state.L[3]];
       const v = { u: u, b: b, r: r, f: f, l: l };
+      const yx = (c) => (c === 'y' ? 'y' : 'x');
       if (mask === 'oll') {
-        const yx = (c) => (c === 'y' ? 'y' : 'x');
         for (let i = 0; i < SZ; i++) u[i] = yx(u[i]);
         [b, r, f, l].forEach((s) => { for (let i = 0; i < N; i++) s[i] = yx(s[i]); });
+      } else if (mask === 'eo') {
+        // yellow cross: corners hidden, centers kept, edge wings yellow-or-x (the 3x3 'eo' mask on 4x4 pieces)
+        [0, 3, 12, 15].forEach((i) => { u[i] = 'x'; });
+        [1, 2, 4, 7, 8, 11, 13, 14].forEach((i) => { u[i] = yx(u[i]); });
+        [b, r, f, l].forEach((s) => { s[0] = 'x'; s[3] = 'x'; s[1] = yx(s[1]); s[2] = yx(s[2]); });
+      } else if (mask === 'cp') {
+        // corner permutation: only the corner side stickers show (the edge wings of the sides are hidden)
+        [b, r, f, l].forEach((s) => { s[1] = 'x'; s[2] = 'x'; });
       }
       return v;
     },

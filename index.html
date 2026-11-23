@@ -10,7 +10,13 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <h1 class="brand">Cubo Trainer</h1>
+    <div class="brand-box">
+      <h1 class="brand">Cubo Trainer</h1>
+      <div class="puzzle-switch" id="puzzle-switch" role="group" aria-label="Puzzle" data-i18n-aria="puzzle.label">
+        <button type="button" class="puzzle-btn" data-puzzle="3x3" aria-pressed="true">3x3</button>
+        <button type="button" class="puzzle-btn" data-puzzle="4x4" aria-pressed="false">4x4</button>
+      </div>
+    </div>
     <span id="sync-status" class="sync-status s-local" role="status"><span class="dot"></span><span class="txt">Saved in this browser</span></span>
     <div class="lang-switch" id="lang-switch" role="group" aria-label="Language" data-i18n-aria="lang.label">
       <button type="button" class="lang-btn" data-lang="en" title="English" aria-pressed="true">EN</button>
@@ -40,19 +46,22 @@
   <section id="view-notation" class="view" hidden></section>
 </main>
 <script src="js/i18n.js"></script>
+<script src="js/puzzle.js"></script>
 <script src="js/cube.js"></script>
 <script src="js/cube4.js"></script>
 <script src="js/cube3d.js"></script>
 <script src="js/algs.js"></script>
 <script src="js/plan.js"></script>
+<script src="js/plan4.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/dialogs.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/timer.js"></script>
+<script src="js/parity4.js"></script>
+<script src="js/trainer4.js"></script>
 <script src="js/trainer.js"></script>
 <script src="js/planview.js"></script>
-<script src="js/parity4.js"></script>
 <script src="js/notation4.js"></script>
 <script src="js/notation.js"></script>
 <script src="js/app.js"></script>

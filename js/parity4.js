@@ -29,8 +29,11 @@
   var UA = "R U' R U R U R U' R' U' R2"; // js/algs.js 'ep-ua'
 
   var NOTATION = [
-    { move: 'R', kind: 'outer', equiv: null, check: { move: 'R', face: 'F', expect: 'up' } },
+    // outer faces, same order as the 3x3 Notation tab. D, L and B are the ones that look reversed (callout: true in the view)
     { move: 'U', kind: 'outer', equiv: null, check: { move: 'U', face: 'F', expect: 'left' } },
+    { move: 'D', kind: 'outer', equiv: null, check: { move: 'D', face: 'F', expect: 'right' } },
+    { move: 'R', kind: 'outer', equiv: null, check: { move: 'R', face: 'F', expect: 'up' } },
+    { move: 'L', kind: 'outer', equiv: null, check: { move: 'L', face: 'F', expect: 'down' } },
     { move: 'F', kind: 'outer', equiv: null, check: { move: 'F', face: 'F', expect: 'cw' } },
     { move: 'B', kind: 'outer', equiv: null, check: { move: 'B', face: 'U', expect: 'left' } },
     { move: '2R', kind: 'inner', equiv: null, check: { move: '2R', face: 'F', expect: 'up' } },
@@ -38,6 +41,8 @@
     { move: 'Rw', kind: 'wide', equiv: 'R 2R', check: { move: 'Rw', face: 'F', expect: 'up' } },
     { move: 'Lw', kind: 'wide', equiv: 'L 2L', check: { move: 'Lw', face: 'F', expect: 'down' } },
     { move: 'Uw', kind: 'wide', equiv: 'U 2U', check: { move: 'Uw', face: 'F', expect: 'left' } },
+    // the 4x4 scrambles of the app use Uw, Rw and Fw
+    { move: 'Fw', kind: 'wide', equiv: 'F 2F', check: { move: 'Fw', face: 'F', expect: 'cw' } },
     // three layers: what the 3x3 r and f of the Trainer become on a 4x4 (see to4x4)
     { move: '3Rw', kind: 'wide3', equiv: "R 2R 2L'", check: { move: '3Rw', face: 'F', expect: 'up' } },
     { move: '3Fw', kind: 'wide3', equiv: "F 2F 2B'", check: { move: '3Fw', face: 'F', expect: 'cw' } },

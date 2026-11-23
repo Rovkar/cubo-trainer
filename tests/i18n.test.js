@@ -56,8 +56,8 @@ function scan() {
   return used;
 }
 const used = scan();
-// se omiten prefijos de claves dinámicas ('phase.' + k) y las 'nt.' / 'n4.' de notation.js y notation4.js (las comprueban sus propios tests)
-const keys = Object.keys(used).filter((k) => k.indexOf('nt.') !== 0 && k.indexOf('n4.') !== 0 && /^[a-z]\w*(\.\w+)+$/.test(k));
+// se omiten prefijos de claves dinámicas ('phase.' + k) y las 'nt.' / 'n4.' / 't4.' de notation.js, notation4.js y trainer4.js (las comprueban sus propios tests)
+const keys = Object.keys(used).filter((k) => k.indexOf('nt.') !== 0 && k.indexOf('n4.') !== 0 && k.indexOf('t4.') !== 0 && /^[a-z]\w*(\.\w+)+$/.test(k));
 ok(keys.length > 80, 'claves usadas detectadas: ' + keys.length);
 const missing = keys.filter((k) => !(k in I.dict.en) || !(k in I.dict.es));
 eq(missing.map((k) => k + ' (' + used[k][0] + ')').join(', ') || '-', '-', 'toda clave usada existe en en y es');

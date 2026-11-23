@@ -373,12 +373,14 @@
   };
 
   // window.TRAINING_PLAN follows the current language (I18N); English if I18N is not available.
+  // In 4x4 mode (Puzzle.is4()) it is the 4x4 plan of js/plan4.js (root.TRAINING_PLANS4) instead of the 3x3 one.
   Object.defineProperty(root, 'TRAINING_PLAN', {
     configurable: true,
     enumerable: true,
     get: function () {
-      var I = root.I18N;
-      return I && I.pick ? I.pick(PLANS) : PLANS.en;
+      var I = root.I18N, Pz = root.Puzzle;
+      var set = Pz && Pz.is4 && Pz.is4() && root.TRAINING_PLANS4 ? root.TRAINING_PLANS4 : PLANS;
+      return I && I.pick ? I.pick(set) : set.en;
     },
   });
   root.TRAINING_PLANS = PLANS;

@@ -1,5 +1,5 @@
 'use strict';
-// Tests for the 4x4 section: js/cube3d.js (NxN engine + top view), js/notation4.js and the size switch of js/notation.js.
+// Tests for the 4x4 section: js/cube3d.js (NxN engine + top view), js/notation4.js and how js/notation.js follows the puzzle mode (js/puzzle.js).
 // Run: node tests/notation4.test.js
 const path = require('path');
 const J = (f) => path.join(__dirname, '..', 'js', f);
@@ -73,7 +73,7 @@ function wellFormed(s) {
   const FACES = Cube4.FACES;
   const ids = () => { const s = {}; FACES.forEach((f) => { s[f] = []; for (let i = 0; i < 16; i++) s[f].push(f + i); }); return s; };
   let lineN = 0;
-  ['R', 'U', 'F', '2R', '2L', 'Rw', 'Lw', 'Uw', 'x', 'y'].forEach((m) => [m, m + "'"].forEach((tok) => {
+  ['R', 'U', 'F', 'D', 'L', 'B', '2R', '2L', 'Rw', 'Lw', 'Uw', 'Fw', 'x', 'y'].forEach((m) => [m, m + "'"].forEach((tok) => {
     const after = Cube4.applyAlg(ids(), tok);
     Cube3D.arrows(tok, VIEW, Cube4).forEach((a) => {
       if (a.kind !== 'line') return;
@@ -91,7 +91,7 @@ function wellFormed(s) {
   const scr = (f, i) => { const g = Cube4.stickerGeom(f, i); return Cube3D.project([g.p[0] + g.n[0] * 0.5, g.p[1] + g.n[1] * 0.5, g.p[2] + g.n[2] * 0.5], VIEW); };
   const ctr = (f) => { const g = Cube4.stickerGeom(f, 0); const n = g.n; return Cube3D.project([n[0] * 2, n[1] * 2, n[2] * 2], VIEW); };
   let arcN = 0;
-  ['R', 'U', 'F', 'Rw', 'Uw', 'x', 'y'].forEach((m) => [m, m + "'"].forEach((tok) => {
+  ['R', 'U', 'F', 'Rw', 'Uw', 'Fw', 'x', 'y'].forEach((m) => [m, m + "'"].forEach((tok) => {
     const after = Cube4.applyAlg(ids(), tok);
     Cube3D.arrows(tok, VIEW, Cube4).forEach((a) => {
       if (a.kind !== 'arc') return;
@@ -202,6 +202,7 @@ function wellFormed(s) {
     (c.pre || []).forEach((p) => check(('n4.pre.' + p) in en, 'precondition text ' + p));
   });
   P.NOTATION.forEach((n) => ['name', 'x', 'xp', 'x2'].forEach((k) => check(('n4.m.' + n.move + '.' + k) in en, 'move text ' + n.move + '.' + k)));
+  Object.keys(N4.CALLOUTS).forEach((m) => check(('n4.m.' + m + '.call') in en && ('n4.m.' + m + '.call') in es, 'callout text ' + m));
 })();
 
 // ---------------------------------------------------------------------------------------------
@@ -297,34 +298,55 @@ function wellFormed(s) {
 })();
 
 // ---------------------------------------------------------------------------------------------
-// 6. Size switch of the Notation tab (no DOM: a fake element + a localStorage stub)
+// 6. The Notation tab follows the puzzle mode (js/puzzle.js): no size switch inside the tab (no DOM: a fake element + a localStorage stub)
 // ---------------------------------------------------------------------------------------------
 (function () {
-  check(NV.size() === '3x3', 'default size is 3x3');
-  NV.setSize('5x5');
-  check(NV.size() === '3x3', 'invalid size ignored');
-  // MOVES/build unchanged for 3x3
-  check(NV.MOVES.length === 9 && NV.build('en').indexOf('data-move="Rw"') < 0, '3x3 build unchanged (no 4x4 cards)');
+  const Puzzle = require(J('puzzle.js'));
   const store = {};
   global.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } };
   global.Notation4View = N4;
-  const el = { innerHTML: '', classList: { add() {} }, addEventListener() {} };
-  NV.mount(el);
-  check(/data-size="3x3"[^>]*aria-pressed="true"/.test(el.innerHTML) && /data-size="4x4"[^>]*aria-pressed="false"/.test(el.innerHTML), 'switch shows 3x3 pressed');
-  check(el.innerHTML.indexOf('data-move="Rw"') < 0 && el.innerHTML.indexOf('data-move="D"') >= 0, '3x3 content by default');
+  Puzzle.set('3x3');
+  check(NV.size() === '3x3' && Puzzle.is4() === false, 'default mode is 3x3');
+  // MOVES/build unchanged for 3x3
+  check(NV.MOVES.length === 9 && NV.build('en').indexOf('data-move="Rw"') < 0, '3x3 build unchanged (no 4x4 cards)');
+  const calls = { listeners: 0 };
+  const el = { innerHTML: '', classList: { add() {} }, addEventListener() { calls.listeners++; } };
+  NV.mount(el); NV.mount(el);
+  check(calls.listeners === 0, 'the tab no longer binds a click listener (the switch is in the header)');
+  check(!/data-size=|class="[^"]*(nt-size|seg-btn)|aria-pressed=/.test(el.innerHTML), '3x3 view has no size switch');
+  check(el.innerHTML.indexOf('data-move="Rw"') < 0 && el.innerHTML.indexOf('data-move="D"') >= 0 && el.innerHTML === NV.build('en'), '3x3 mode: the 3x3 view');
+  // the header switch changes the mode; app.js re-renders the tab
+  Puzzle.set('4x4');
+  check(store['cubotrainer.ntSize'] === '4x4', 'mode persisted in cubotrainer.ntSize (by Puzzle)');
+  NV.render();
+  check(!/data-size=|class="[^"]*(nt-size|seg-btn)|aria-pressed=/.test(el.innerHTML), '4x4 view has no size switch');
+  check(el.innerHTML.indexOf('data-move="Rw"') >= 0 && el.innerHTML.indexOf('data-case="pll-corners"') >= 0, '4x4 mode: the 4x4 view');
+  check(el.innerHTML === N4.build('en'), 'render embeds exactly Notation4View.build(lang)');
+  Puzzle.set('3x3');
+  NV.render();
+  check(el.innerHTML.indexOf('data-move="Rw"') < 0 && el.innerHTML === NV.build('en'), 'back to the 3x3 view');
+  // setSize is only a thin alias of Puzzle.set (compatibility)
+  NV.setSize('5x5');
+  check(NV.size() === '3x3' && Puzzle.current() === '3x3', 'setSize: invalid value ignored');
   NV.setSize('4x4');
-  check(store['cubotrainer.ntSize'] === '4x4', 'size persisted in cubotrainer.ntSize');
-  check(/data-size="4x4"[^>]*aria-pressed="true"/.test(el.innerHTML) && el.innerHTML.indexOf('data-move="Rw"') >= 0 && el.innerHTML.indexOf('data-case="pll-corners"') >= 0, '4x4 content after setSize');
-  check(el.innerHTML.indexOf(N4.build('en')) >= 0, 'render embeds Notation4View.build(lang)');
+  check(NV.size() === '4x4' && Puzzle.current() === '4x4' && store['cubotrainer.ntSize'] === '4x4', 'setSize alias switches the global mode');
+  check(el.innerHTML === N4.build('en'), 'setSize alias also repaints the tab');
   NV.setSize('3x3');
-  check(store['cubotrainer.ntSize'] === '3x3' && el.innerHTML.indexOf('data-move="Rw"') < 0, 'back to 3x3');
-  delete global.localStorage; delete global.Notation4View;
-  // a throwing localStorage never breaks setSize
+  check(Puzzle.current() === '3x3' && el.innerHTML === NV.build('en'), 'setSize back to 3x3');
+  // without Notation4View loaded the 3x3 view is shown instead of an error
+  delete global.Notation4View;
+  Puzzle.set('4x4'); NV.render();
+  check(el.innerHTML === NV.build('en'), '4x4 mode without Notation4View falls back to the 3x3 view');
+  global.Notation4View = N4;
+  // a throwing localStorage never breaks the mode
   global.localStorage = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } };
-  NV.setSize('4x4');
+  NV.setSize('3x3'); NV.setSize('4x4');
   check(NV.size() === '4x4', 'setSize works when localStorage throws');
+  NV.render();
+  check(el.innerHTML === N4.build('en'), 'render works when localStorage throws');
   NV.setSize('3x3');
-  delete global.localStorage;
+  Puzzle.set('3x3');
+  delete global.localStorage; delete global.Notation4View;
 })();
 
 // ---------------------------------------------------------------------------------------------
@@ -388,33 +410,54 @@ function wellFormed(s) {
 })();
 
 // ---------------------------------------------------------------------------------------------
-// 8. Size switch: keyboard focus survives the re-render, one listener however many times it is mounted
+// 8. Outer-face cards D and L, the Fw card, and the "looks reversed" explanation of D, L and B
 // ---------------------------------------------------------------------------------------------
 (function () {
-  const store = {};
-  global.localStorage = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } };
-  global.Notation4View = N4;
-  const calls = { listeners: 0, focused: [] };
-  let handler = null;
-  const el2 = {
-    innerHTML: '', classList: { add() {} },
-    addEventListener(type, h) { calls.listeners++; handler = h; },
-    querySelector(sel) { const m = /data-size="([^"]+)"/.exec(sel); return m ? { focus() { calls.focused.push(m[1]); } } : null; },
+  const Puzzle = require(J('puzzle.js'));
+  const cardOf = (html, m) => {
+    const i = html.indexOf('<article class="card nt-card n4-card" data-move="' + m + '"');
+    return i < 0 ? '' : html.slice(i, html.indexOf('</article>', i));
   };
-  NV.setSize('3x3');
-  NV.mount(el2); NV.mount(el2); NV.mount(el2);
-  check(calls.listeners === 1, 'mount called three times adds a single click listener (' + calls.listeners + ')');
-  handler({ target: { closest: () => ({ getAttribute: () => '4x4' }) } });
-  check(NV.size() === '4x4' && el2.innerHTML.indexOf('data-move="Rw"') >= 0, 'a click on the selector switches to 4x4');
-  check(eq(calls.focused, ['4x4']), 'the 4x4 button gets the focus back after the re-render');
-  handler({ target: { closest: () => ({ getAttribute: () => '3x3' }) } });
-  check(eq(calls.focused, ['4x4', '3x3']) && NV.size() === '3x3', 'and so does the 3x3 button');
-  NV.setSize('4x4');
-  check(calls.focused.length === 2, 'a programmatic change (the Trainer button) does not steal the focus');
-  handler({ target: { closest: () => null } });
-  check(calls.focused.length === 2, 'a click elsewhere does nothing');
-  NV.setSize('3x3');
-  delete global.localStorage; delete global.Notation4View;
+  const outer = P.NOTATION.filter((n) => n.kind === 'outer').map((n) => n.move);
+  check(eq(outer, ['U', 'D', 'R', 'L', 'F', 'B']), 'outer-face cards in the order of the 3x3 tab: ' + outer.join(' '));
+  check(P.NOTATION.some((n) => n.move === 'Fw' && n.kind === 'wide'), 'Fw is in NOTATION');
+  // every move the 4x4 scrambles can contain has a card
+  const html0 = N4.build('en');
+  Puzzle.MOVES4.forEach((m) => {
+    const known = P.NOTATION.some((n) => n.move === m);
+    check(known, 'scramble move ' + m + ' has a notation card');
+  });
+  ['U', 'D', 'R', 'L', 'F', 'B', 'Uw', 'Rw', 'Fw'].forEach((m) => check(html0.indexOf('data-move="' + m + '"') >= 0, 'card for the scramble move ' + m));
+  ['en', 'es'].forEach((l) => {
+    const html = N4.build(l), T = (k) => N4.STRINGS[l][k];
+    // the order of the cards in the page: U D R L F B
+    const pos = outer.map((m) => html.indexOf('data-move="' + m + '"'));
+    check(pos.every((p, i) => p >= 0 && (i === 0 || p > pos[i - 1])), l + ': the outer cards appear in the order ' + outer.join(' '));
+    // callouts: only D, L and B, with the text of the 3x3 tab
+    ['U', 'D', 'R', 'L', 'F', 'B', 'Fw', 'Rw', '2R', 'x'].forEach((m) => {
+      const card = cardOf(html, m), has = /nt-callout/.test(card);
+      check(card.length > 0, l + ': card ' + m);
+      check(has === !!N4.CALLOUTS[m], l + ': ' + m + ' card ' + (N4.CALLOUTS[m] ? 'has' : 'has no') + ' the looks-reversed note');
+    });
+    ['D', 'L', 'B'].forEach((m) => {
+      check(T('n4.m.' + m + '.call') === NV.STRINGS[l]['nt.m.' + m + '.call'], l + ': the ' + m + ' explanation is the one of the 3x3 tab');
+      check(cardOf(html, m).indexOf(T('n4.m.' + m + '.call')) >= 0, l + ': the ' + m + ' card shows it');
+    });
+    // each new card shows its three moves and the engine-derived after diagram
+    ['D', 'L', 'Fw'].forEach((m) => {
+      const card = cardOf(html, m);
+      check(card.indexOf('<b class="nt-mv">' + m + '</b>') >= 0 && card.indexOf('<b class="nt-mv">' + m + "'" + '</b>') >= 0 && card.indexOf('<b class="nt-mv">' + m + '2</b>') >= 0, l + ': ' + m + ' card lists ' + m + ", " + m + "' and " + m + '2');
+      check(card.indexOf(Cube3D.svg(N4.afterState(m), { engine: Cube4, size: 170, title: T('n4.alt.after').replace('{m}', m) })) >= 0, l + ': ' + m + ' card has the after diagram from Cube4.applyAlg');
+      check((card.match(/<svg/g) || []).length === 2, l + ': ' + m + ' card has two diagrams');
+    });
+    check(cardOf(html, 'Fw').indexOf('F + 2F') >= 0, l + ': the Fw card says it turns F + 2F');
+    check(!/Notation tab, 3x3|pestaña Notación, 3x3/.test(html), l + ': the page no longer says the 3x3 view lives in a tab of its own');
+  });
+  // the arrows of the new cards follow the engine and the expected direction on face F
+  [['D', 'right'], ['L', 'down'], ['Fw', 'cw']].forEach((p) => {
+    const e = P.NOTATION.filter((n) => n.move === p[0])[0];
+    check(!!e && e.check.expect === p[1] && Cube4.flow(p[0], e.check.face) === p[1], p[0] + ': check ' + p[1] + ' agrees with the engine');
+  });
 })();
 
 console.log(passed + ' ok, ' + failed + ' failed');

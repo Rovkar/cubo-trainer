@@ -16,8 +16,13 @@
     return null;
   }
 
+  // Solves of the puzzle in use (3x3 | 4x4): the plan and its ao12 follow the mode of the app
+  function puzzleSolves() {
+    var s = root.Storage.activeSession();
+    return root.Puzzle ? root.Puzzle.solvesOf(s) : s.solves;
+  }
   function currentAo12() {
-    var times = root.Storage.activeSession().solves.map(root.Stats.effectiveTime);
+    var times = puzzleSolves().map(root.Stats.effectiveTime);
     return root.Stats.averageOf(times, 12);
   }
 
@@ -26,7 +31,8 @@
     var plan = root.TRAINING_PLAN, M = root.Storage.milestones();
     var cur = currentPhase(), ao = currentAo12();
     var h = '<div class="card"><p>' + plan.intro + '</p></div>';
-    h += '<div class="card highlight"><h3>' + esc(t('plan.situation', { name: root.Storage.activeSession().name })) + '</h3><ul class="plain">' +
+    var puzzle = root.Puzzle ? root.Puzzle.current() : '3x3';
+    h += '<div class="card highlight"><h3>' + esc(t('plan.situation', { name: root.Storage.activeSession().name })) + ' · <span class="plan-puzzle">' + esc(puzzle) + '</span></h3><ul class="plain">' +
       '<li>' + esc(t('plan.currentAo12')) + ' <b>' + (ao === null ? esc(t('plan.noAo12')) : root.Stats.formatTime(ao)) + '</b></li>';
     if (cur) {
       h += '<li>' + esc(t('plan.currentPhase')) + ' <b>' + esc(cur.title) + '</b></li><li>' + esc(t('plan.goal')) + ' <b>' + esc(cur.goal) + '</b></li></ul>';

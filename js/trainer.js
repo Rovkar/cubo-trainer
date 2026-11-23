@@ -1,15 +1,23 @@
 (function (root) {
   'use strict';
   var SET_ORDER = ['EO', 'OCLL', 'CP', 'EP'];
+  var SET_ORDER4 = ['EO', 'OCLL', 'CP', 'EP', 'OLLP', 'PLLP']; // the 4x4 Trainer adds the two parity sets
   var STATUSES = ['nuevo', 'aprendiendo', 'dominado']; // valores guardados; la etiqueta se traduce con la clave status + valor
   var mode = 'learn';
   var container = null;
   var active = false;
   var timer = null;
-  var filt = { sets: { EO: true, OCLL: true, CP: true, EP: true }, only: 'todos' };
+  var filt = { sets: { EO: true, OCLL: true, CP: true, EP: true, OLLP: true, PLLP: true }, only: 'todos' };
   var cur = null; // { c, setup, revealed }
   var lastId = null;
   var timeEl = null;
+
+  // ---- 3x3 / 4x4 mode (device preference, js/puzzle.js). The 4x4 case list lives in js/trainer4.js ----
+  function is4() { return !!(root.Puzzle && root.Puzzle.is4() && root.Trainer4); }
+  function cases() { return is4() ? root.Trainer4.CASES : root.ALGS; }
+  function setOrder() { return is4() ? SET_ORDER4 : SET_ORDER; }
+  function isPractice(c) { return c.practice !== false; } // 3x3 cases have no flag: all of them can be practiced
+  function setOn(s) { return filt.sets[s] !== false; }
 
   function esc(s) { return root.escHtml(s); }
   function t(key, params) { return root.I18N.t(key, params); }
@@ -45,20 +53,46 @@
     return last.reduce(function (a, b) { return a + b; }, 0) / last.length;
   }
 
+  // diagram of a case in the current mode (3x3 or 4x4 top view)
+  function caseDiagram(c) {
+    return is4() ? root.Trainer4.svg(root.Trainer4.viewOf(c)) : diagram(root.Cube.caseStickers(c.alg, c.mask));
+  }
+
+  function learnBody(c) {
+    var h = '';
+    if (c.alg) h += '<code class="alg">' + esc(c.alg) + '</code>';
+    else {
+      // Learn-only 4x4 card: summary of a recipe with several steps, plus the algorithms it uses
+      h += '<p class="tip"><b>' + esc(t('t4.lbl.steps')) + '</b> ' + esc(c.summary || '') + '</p>';
+      (c.shows || []).forEach(function (x) {
+        h += '<div class="muted small">' + esc(t(x.key)) + '</div><code class="alg">' + esc(x.alg) + '</code>';
+      });
+    }
+    h += '<p class="tip">' + esc(c.tip || '') + '</p>';
+    if (c.hold) h += '<p class="tip"><b>' + esc(t('t4.hold.label')) + '</b> ' + esc(c.hold) + '</p>';
+    if (c.note) h += '<p class="tip">' + esc(c.note) + '</p>';
+    if (!c.alg) {
+      h += '<p class="muted small">' + esc(t('t4.learnOnly.note')) + '</p>' +
+        '<div><button class="btn small-btn" data-act="notation">' + esc(t('t4.openNotation')) + '</button></div>';
+    }
+    return h;
+  }
+
   function renderLearn() {
-    var total = root.ALGS.length, mastered = root.ALGS.filter(function (c) { return root.Storage.caseStatus(c.id) === 'dominado'; }).length;
+    var list = cases();
+    var total = list.length, mastered = list.filter(function (c) { return root.Storage.caseStatus(c.id) === 'dominado'; }).length;
     var h = '<div class="muted counter">' + t('trainer.mastered', { m: mastered, total: total, name: esc(root.Storage.activeSession().name) }) + '</div>';
-    SET_ORDER.forEach(function (s) {
-      var cs = root.ALGS.filter(function (c) { return c.set === s; });
+    setOrder().forEach(function (s) {
+      var cs = list.filter(function (c) { return c.set === s; });
       if (!cs.length) return;
       h += '<h3 class="set-title">' + esc(cs[0].setName) + '</h3><div class="cards">';
       cs.forEach(function (c) {
         var st = root.Storage.caseStatus(c.id), times = root.Storage.caseTimes(c.id);
         h += '<article class="card case" data-id="' + esc(c.id) + '">' +
-          diagram(root.Cube.caseStickers(c.alg, c.mask)) +
-          '<div class="case-body"><div class="case-name">' + esc(c.name) + ' ' + chip(st) + '</div>' +
-          '<code class="alg">' + esc(c.alg) + '</code>' +
-          '<p class="tip">' + esc(c.tip || '') + '</p>' +
+          caseDiagram(c) +
+          '<div class="case-body"><div class="case-name">' + esc(c.name) + ' ' + chip(st) +
+          (isPractice(c) ? '' : ' <span class="muted small">' + esc(t('t4.learnOnly')) + '</span>') + '</div>' +
+          learnBody(c) +
           '<select class="st-select" aria-label="' + esc(t('trainer.statusOf', { name: c.name })) + '">' +
           STATUSES.map(function (x) { return '<option value="' + x + '"' + (x === st ? ' selected' : '') + '>' + esc(t('status.' + x)) + '</option>'; }).join('') +
           '</select>' +
@@ -67,14 +101,18 @@
       });
       h += '</div>';
     });
-    h += '<section class="card n4-link"><h3>' + esc(t('trainer.n4.title')) + '</h3><p class="muted">' + esc(t('trainer.n4.text')) + '</p>' +
-      '<button class="btn" data-act="n4">' + esc(t('trainer.n4.btn')) + '</button></section>';
+    // 3x3 mode only: the card that switches the whole app to 4x4
+    if (!is4()) {
+      h += '<section class="card n4-link"><h3>' + esc(t('t4.switch.title')) + '</h3><p class="muted">' + esc(t('t4.switch.text')) + '</p>' +
+        '<button class="btn" data-act="n4">' + esc(t('t4.switch.btn')) + '</button></section>';
+    }
     return h;
   }
 
   function pool() {
-    return root.ALGS.filter(function (c) {
-      if (!filt.sets[c.set]) return false;
+    return cases().filter(function (c) {
+      if (!isPractice(c)) return false;
+      if (!setOn(c.set)) return false;
       if (filt.only === 'nodom' && root.Storage.caseStatus(c.id) === 'dominado') return false;
       return true;
     });
@@ -102,17 +140,17 @@
     var c = pickCase();
     if (!c) { cur = null; return; }
     lastId = c.id;
-    var setup = root.Cube.setupFor(c.alg);
+    var setup = is4() ? root.Trainer4.setupFor(c) : root.Cube.setupFor(c.alg);
     cur = { c: c, setup: setup, revealed: false };
     if (timer) timer.reset(false);
   }
 
   function renderPractice() {
     var h = '<div class="card filters"><div class="filter-row"><b>' + esc(t('trainer.sets')) + '</b> ';
-    SET_ORDER.forEach(function (s) {
-      var any = root.ALGS.filter(function (c) { return c.set === s; })[0];
+    setOrder().forEach(function (s) {
+      var any = cases().filter(function (c) { return c.set === s && isPractice(c); })[0];
       if (!any) return;
-      h += '<label class="check"><input type="checkbox" data-set="' + s + '"' + (filt.sets[s] ? ' checked' : '') + '> ' + esc(any.setName) + '</label>';
+      h += '<label class="check"><input type="checkbox" data-set="' + s + '"' + (setOn(s) ? ' checked' : '') + '> ' + esc(any.setName) + '</label>';
     });
     h += '</div><div class="filter-row"><b>' + esc(t('trainer.state')) + '</b> ' +
       '<label class="check"><input type="radio" name="only" value="todos"' + (filt.only === 'todos' ? ' checked' : '') + '> ' + esc(t('trainer.all')) + '</label>' +
@@ -121,12 +159,15 @@
       return h + '<div class="card empty">' + esc(t('trainer.noCases')) + '</div>';
     }
     var c = cur.c;
-    var view = root.Cube.lastLayerView(root.Cube.applyAlg(root.Cube.solved('yellowTop'), cur.setup), c.mask);
-    h += '<div class="card practice"><div class="practice-top">' + diagram(view) + '<div class="practice-info">' +
+    var E = is4() ? root.Cube4 : root.Cube;
+    var view = E.lastLayerView(E.applyAlg(E.solved('yellowTop'), cur.setup), c.mask);
+    h += '<div class="card practice"><div class="practice-top">' + (is4() ? root.Trainer4.svg(view) : diagram(view)) + '<div class="practice-info">' +
       '<div class="muted small">' + esc(t('trainer.setup')) + ' <button class="btn small-btn" data-act="notation">' + esc(t('notation.howToRead')) + '</button></div><code class="alg">' + esc(cur.setup) + '</code>' +
       '<div id="solution" class="solution' + (cur.revealed ? '' : ' hidden') + '">' +
       '<div class="case-name">' + esc(c.name) + ' ' + chip(root.Storage.caseStatus(c.id)) + '</div><code class="alg">' + esc(c.alg) + '</code>' +
-      '<p class="tip">' + esc(c.tip || '') + '</p></div>' +
+      '<p class="tip">' + esc(c.tip || '') + '</p>' +
+      (c.hold ? '<p class="tip"><b>' + esc(t('t4.hold.label')) + '</b> ' + esc(c.hold) + '</p>' : '') +
+      (c.note ? '<p class="tip">' + esc(c.note) + '</p>' : '') + '</div>' +
       '<div class="btn-row"><button class="btn" data-act="reveal"' + (cur.revealed ? ' style="display:none"' : '') + '>' + esc(t('trainer.reveal')) + '</button>' +
       '<button class="btn primary" data-act="next">' + esc(t('trainer.next')) + '</button></div></div></div>' +
       '<div id="ptimer" class="timer-zone small-zone" tabindex="-1"><div id="ptime" class="time">0.00</div>' +
@@ -206,8 +247,8 @@
         render();
       } else if (b.dataset.act === 'notation') { if (root.App && root.App.showTab) root.App.showTab('notation'); }
       else if (b.dataset.act === 'n4') {
-        if (root.App && root.App.showTab) root.App.showTab('notation');
-        if (root.NotationView && root.NotationView.setSize) root.NotationView.setSize('4x4');
+        // switch the whole app to 4x4 (the header switch does the same); onPuzzleChange re-renders this tab
+        if (root.Puzzle) root.Puzzle.set('4x4');
       }
       else if (b.dataset.act === 'next') goNext();
       else if (b.dataset.act === 'reveal' && cur) {
@@ -219,8 +260,16 @@
     render();
   }
 
+  // The puzzle mode changed (3x3 <-> 4x4): drop the current practice case and the timer, and show the other case list.
+  function onPuzzleChange() {
+    cur = null; lastId = null;
+    if (timer) timer.reset(false);
+    if (mode === 'practice') nextCase();
+    render();
+  }
+
   root.Trainer = {
-    mount: mount, render: render, diagram: diagram,
+    mount: mount, render: render, diagram: diagram, onPuzzleChange: onPuzzleChange,
     setActive: function (v) {
       active = v;
       if (v && mode === 'practice' && !cur) nextCase();

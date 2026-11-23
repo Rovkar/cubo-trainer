@@ -13,6 +13,8 @@
 
   var SCHEME = 'yellowTop'; // amarillo arriba, verde al frente: igual que las posiciones del Entrenador
   var GROUPS = ['outer', 'inner', 'wide', 'wide3', 'rotation'];
+  // D, L and B look reversed (you do not look at those faces): their cards carry the same explanation as the 3x3 tab
+  var CALLOUTS = { D: true, L: true, B: true };
 
   // ---- Textos (clave 'n4.*', en ambos idiomas) ----
   var STRINGS = {
@@ -21,7 +23,7 @@
       'n4.lead': 'On a 4x4 you solve by reduction: first the centers, then you pair up the edges, and after that it plays like a 3x3 (4LLL for the last layer). Careful: six of the Trainer algorithms (the ones with r, f or M) have to be rewritten for a 4x4, and two last-layer cases can show up that are impossible on a 3x3: OLL parity and PLL parity. This page has the notation you need, the 4x4 version of every algorithm and a checked recipe for each case.',
       'n4.flow.title': 'Where parity fits',
       'n4.flow.1': 'Solve the centers and pair up the edges (reduction). A paired edge, made of two edge pieces, is called a dedge (double edge) on this page.',
-      'n4.flow.2': 'Solve it like a 3x3. For the last layer use the four steps of the Trainer: yellow cross, orient corners, permute corners, permute edges. Six of the sixteen Trainer algorithms use r, f or M and do not work as written on a 4x4: use their 4x4 version (card "Trainer algorithms on a 4x4", below).',
+      'n4.flow.2': 'Solve it like a 3x3. For the last layer use the four steps of the Trainer: yellow cross, orient corners, permute corners, permute edges. Six of the sixteen Trainer algorithms are written with r, f or M for the 3x3 and do not work as written on a 4x4: the Trainer in 4x4 mode already shows their 4x4 version, and the card "Trainer algorithms on a 4x4" (below) lists them.',
       'n4.flow.3': 'If at one of those steps you see something that cannot happen on a 3x3, it is parity. The cards below tell you which one and how to fix it.',
       'n4.hold.title': 'How to hold the cube',
       'n4.hold.text': 'For the last layer hold the cube as in the Trainer: yellow center on top and green center facing you (orange on your right). The last-layer diagrams are seen from above: the bottom edge of the diagram is the side facing you. Each recipe says when to turn the whole cube sideways (a y rotation) before an algorithm.',
@@ -32,7 +34,7 @@
       'n4.not.lead': 'A 4x4 has two layers between each pair of opposite faces, so there are more kinds of move than on a 3x3. Each card shows the cube before the move (the layers that turn are highlighted and the arrows show where their stickers go) and after doing it once. The diagrams show the cube with yellow on top and green in front.',
       'n4.mod': "The modifiers are the same as on a 3x3: an apostrophe (X') is the opposite direction and a 2 after the move (X2) is a half turn.",
       'n4.warn.title': 'Careful with the lowercase r',
-      'n4.warn.text': 'Many 4x4 tutorials write r, r2 or l for the inner slice only. In this app (Notation tab, 3x3) a lowercase r means Rw: the outer face and the inner slice together. So in this section the inner slice is always written 2R (or 2L) and wide moves are always written Rw (or Lw, Uw): never r. If you follow a tutorial that uses r, check whether it means one layer or two before you copy it.',
+      'n4.warn.text': 'Many 4x4 tutorials write r, r2 or l for the inner slice only. In this app, in both modes, a lowercase r means Rw: the outer face and the inner slice together. So in this section the inner slice is always written 2R (or 2L) and wide moves are always written Rw (or Lw, Uw): never r. If you follow a tutorial that uses r, check whether it means one layer or two before you copy it.',
       'n4.kind.outer.title': 'Outer face: R, L, U, D, F, B',
       'n4.kind.outer.text': 'A capital letter alone turns only the outer face, exactly like on a 3x3.',
       'n4.kind.inner.title': 'Inner slice: 2R, 2L, 2U, 2D, 2F, 2B',
@@ -49,6 +51,7 @@
       'n4.alt.after': 'The solved 4x4 after doing {m} once.',
       'n4.equiv': 'Layers that turn together:',
       'n4.m.R.name': 'Right face', 'n4.m.U.name': 'Up face', 'n4.m.F.name': 'Front face', 'n4.m.B.name': 'Back face',
+      'n4.m.D.name': 'Down face', 'n4.m.L.name': 'Left face', 'n4.m.Fw.name': 'Front face + inner slice',
       'n4.m.2R.name': 'Inner slice next to R', 'n4.m.2L.name': 'Inner slice next to L',
       'n4.m.Rw.name': 'Right face + inner slice', 'n4.m.Lw.name': 'Left face + inner slice', 'n4.m.Uw.name': 'Top face + inner slice',
       'n4.m.x.name': 'Whole cube, like R', 'n4.m.y.name': 'Whole cube, like U',
@@ -71,6 +74,18 @@
       'n4.m.B.x': 'Turn only the outer back face clockwise, as seen from behind. From your side it looks counterclockwise: the row of the top face that is farthest from you goes LEFT.',
       'n4.m.B.xp': 'The opposite: that row goes RIGHT.',
       'n4.m.B.x2': 'Half turn of the back face.',
+      'n4.m.D.x': 'Turn only the outer bottom face clockwise, as seen from below. The bottom row of the front face goes RIGHT.',
+      'n4.m.D.xp': 'Counterclockwise as seen from below: that row goes LEFT.',
+      'n4.m.D.x2': 'Half turn: that row ends up on the back.',
+      'n4.m.L.x': 'Turn only the outer left face clockwise, as seen from the left side. The left column of the front face goes DOWN.',
+      'n4.m.L.xp': 'Counterclockwise as seen from the left side: that column goes UP.',
+      'n4.m.L.x2': 'Half turn: that column ends up on the back.',
+      'n4.m.Fw.x': 'Turn the front face and the inner slice right behind it together, clockwise as you see the front.',
+      'n4.m.Fw.xp': 'Counterclockwise, as you see it.',
+      'n4.m.Fw.x2': 'Half turn of the two front layers.',
+      'n4.m.D.call': 'D, L and B look reversed compared with U, R and F because you are not looking at those faces. Clockwise is always judged looking straight at the face you turn: for D, from below. That is why D sends the front row to the right, the opposite of U.',
+      'n4.m.L.call': 'D, L and B look reversed compared with U, R and F because you are not looking at those faces. Clockwise is always judged looking straight at the face you turn: for L, from the left side. That is why L sends the front column down, the opposite of R.',
+      'n4.m.B.call': 'D, L and B look reversed compared with U, R and F because you are not looking at those faces. Clockwise is always judged looking straight at the face you turn: for B, from behind.',
       'n4.m.2R.x': 'Turn only the inner slice next to the right face, in the same direction as R. The second column from the right of the front face goes UP. The outer faces do not move.',
       'n4.m.2R.xp': 'The opposite: that column goes DOWN.',
       'n4.m.2R.x2': 'Half turn of that slice.',
@@ -104,7 +119,7 @@
       'n4.par.limit': 'If, with the corners placed, your dedges match a Ua, Ub, H or Z, solve them as the Trainer says (with the 4x4 versions of H and Z). Any other odd arrangement is covered by the last card. A diagonal swap of two corners with all the edges solved is not covered here.',
 
       'n4.tr.title': 'Trainer algorithms on a 4x4',
-      'n4.tr.lead': 'The Trainer algorithms are written for a 3x3, where a lowercase r or f also turns the middle layer and M is the middle slice. On a 4x4 the middle is made of two inner slices, so six of the sixteen algorithms (the ones with r, f or M) break the centers and unpair dedges if you do them as written. Replace the moves like this and they do exactly what they do on a 3x3:',
+      'n4.tr.lead': 'The 3x3 Trainer algorithms are written for a 3x3, where a lowercase r or f also turns the middle layer and M is the middle slice. On a 4x4 the middle is made of two inner slices, so six of the sixteen algorithms (the ones with r, f or M) break the centers and unpair dedges if you do them as written. The Trainer in 4x4 mode already shows them rewritten. To rewrite one yourself, replace the moves like this and it does exactly what it does on a 3x3:',
       'n4.tr.map.r': 'r becomes 3Rw (three layers, like R).',
       'n4.tr.map.f': 'f becomes 3Fw (three layers, like F).',
       'n4.tr.map.M': "M becomes 2L 2R'; M' becomes 2L' 2R; M2 becomes 2L2 2R2 (both inner slices turn like L).",
@@ -125,7 +140,7 @@
 
       'n4.c.oll-parity.title': 'OLL parity: one flipped dedge',
       'n4.c.oll-parity.rec': 'In step 1 of the Trainer (yellow cross), with the edges already paired, count the dedges that show yellow on top. On a 3x3 it is always 0, 2 or 4. If you see an odd number (1 or 3), it is OLL parity. Hold any dedge that shows yellow on its side at the front: with 3 yellow dedges on top there is one such dedge, with only 1 there are three and any of them works.',
-      'n4.c.oll-parity.note': 'The algorithm flips the dedge at the front and leaves every other piece where it was. With 3 yellow dedges on top, the yellow cross is now complete. With only 1, two dedges still show yellow on the side: that is a normal line or L, so do step 1 of the Trainer as usual before step 2 (the L shape and the dot need their 4x4 version, listed below).',
+      'n4.c.oll-parity.note': 'The algorithm flips the dedge at the front and leaves every other piece where it was. With 3 yellow dedges on top, the yellow cross is now complete. With only 1, two dedges still show yellow on the side: that is a normal line or L, so do step 1 of the Trainer as usual before step 2 (the L shape needs its 4x4 version, listed below).',
       'n4.c.oll-parity.alg4': '4x4 versions of the step 1 algorithms that use f:',
       'n4.c.pll-opposite.title': 'PLL parity: two opposite dedges swapped',
       'n4.c.pll-opposite.rec': 'In step 4 of the Trainer (permute edges), with the corners already placed, two opposite dedges (front and back, or left and right) are in each other\'s place and the other two are correct. No 3x3 case looks like this: Ua and Ub move three edges, H and Z move four.',
@@ -168,7 +183,7 @@
       'n4.lead': 'En un 4x4 se resuelve por reducción: primero los centros, luego se emparejan las aristas y después se juega como un 3x3 (4LLL para la última capa). Ojo: seis de los algoritmos del Entrenador (los que llevan r, f o M) hay que reescribirlos para un 4x4, y en la última capa pueden aparecer dos casos que en un 3x3 son imposibles: la paridad de OLL y la paridad de PLL. Aquí tienes la notación que necesitas, la versión de 4x4 de cada algoritmo y una receta comprobada para cada caso.',
       'n4.flow.title': 'Dónde encajan las paridades',
       'n4.flow.1': 'Resuelve los centros y empareja las aristas (reducción). Una arista emparejada, formada por dos piezas de arista, se llama «arista doble» en esta página.',
-      'n4.flow.2': 'Resuélvelo como un 3x3. Para la última capa usa los cuatro pasos del Entrenador: cruz amarilla, orientar esquinas, permutar esquinas y permutar aristas. Seis de los dieciséis algoritmos del Entrenador llevan r, f o M y no funcionan tal cual en un 4x4: usa su versión de 4x4 (tarjeta «Algoritmos del Entrenador en un 4x4», más abajo).',
+      'n4.flow.2': 'Resuélvelo como un 3x3. Para la última capa usa los cuatro pasos del Entrenador: cruz amarilla, orientar esquinas, permutar esquinas y permutar aristas. Seis de los dieciséis algoritmos del Entrenador están escritos con r, f o M para el 3x3 y no funcionan tal cual en un 4x4: el Entrenador en modo 4x4 ya muestra su versión de 4x4 y la tarjeta «Algoritmos del Entrenador en un 4x4» (más abajo) los lista.',
       'n4.flow.3': 'Si en alguno de esos pasos ves algo que en un 3x3 no puede pasar, es una paridad. Las tarjetas de abajo te dicen cuál es y cómo arreglarla.',
       'n4.hold.title': 'Cómo sostener el cubo',
       'n4.hold.text': 'Para la última capa sostén el cubo como en el Entrenador: centro amarillo arriba y centro verde mirando hacia ti (el naranja queda a tu derecha). Los diagramas de la última capa se ven desde arriba: el borde de abajo del diagrama es el lado que te mira. Cada receta dice cuándo girar el cubo entero hacia un lado (rotación «y») antes de un algoritmo.',
@@ -179,7 +194,7 @@
       'n4.not.lead': 'Un 4x4 tiene dos capas entre cada par de caras opuestas, así que hay más tipos de movimiento que en un 3x3. Cada tarjeta muestra el cubo antes del movimiento (las capas que giran están resaltadas y las flechas indican adónde van sus piezas) y después de hacerlo una vez. Los diagramas muestran el cubo con amarillo arriba y verde al frente.',
       'n4.mod': "Los modificadores son los mismos que en el 3x3: el apóstrofo (X') es el sentido contrario y un 2 después del movimiento (X2) es media vuelta.",
       'n4.warn.title': 'Cuidado con la r minúscula',
-      'n4.warn.text': 'Muchos tutoriales de 4x4 escriben r, r2 o l para la capa interior sola. En esta app (pestaña Notación, 3x3) una r minúscula significa Rw: la cara exterior y la capa interior juntas. Por eso en esta sección la capa interior se escribe siempre 2R (o 2L) y los movimientos anchos siempre Rw (o Lw, Uw): nunca r. Si sigues un tutorial que usa r, comprueba si habla de una capa o de dos antes de copiarlo.',
+      'n4.warn.text': 'Muchos tutoriales de 4x4 escriben r, r2 o l para la capa interior sola. En esta app, en ambos modos, una r minúscula significa Rw: la cara exterior y la capa interior juntas. Por eso en esta sección la capa interior se escribe siempre 2R (o 2L) y los movimientos anchos siempre Rw (o Lw, Uw): nunca r. Si sigues un tutorial que usa r, comprueba si habla de una capa o de dos antes de copiarlo.',
       'n4.kind.outer.title': 'Cara exterior: R, L, U, D, F, B',
       'n4.kind.outer.text': 'Una letra mayúscula sola gira solo la cara exterior, igual que en un 3x3.',
       'n4.kind.inner.title': 'Capa interior: 2R, 2L, 2U, 2D, 2F, 2B',
@@ -196,6 +211,7 @@
       'n4.alt.after': 'El 4x4 resuelto después de hacer {m} una vez.',
       'n4.equiv': 'Capas que giran a la vez:',
       'n4.m.R.name': 'Cara derecha', 'n4.m.U.name': 'Cara de arriba', 'n4.m.F.name': 'Cara frontal', 'n4.m.B.name': 'Cara de atrás',
+      'n4.m.D.name': 'Cara de abajo', 'n4.m.L.name': 'Cara izquierda', 'n4.m.Fw.name': 'Cara frontal + capa interior',
       'n4.m.2R.name': 'Capa interior junto a R', 'n4.m.2L.name': 'Capa interior junto a L',
       'n4.m.Rw.name': 'Cara derecha + capa interior', 'n4.m.Lw.name': 'Cara izquierda + capa interior', 'n4.m.Uw.name': 'Cara de arriba + capa interior',
       'n4.m.x.name': 'Cubo entero, como R', 'n4.m.y.name': 'Cubo entero, como U',
@@ -218,6 +234,18 @@
       'n4.m.B.x': 'Gira solo la cara de atrás exterior en sentido horario, visto desde atrás. Desde tu lado parece antihorario: la fila de la cara de arriba más lejana a ti se va a la IZQUIERDA.',
       'n4.m.B.xp': 'Lo contrario: esa fila se va a la DERECHA.',
       'n4.m.B.x2': 'Media vuelta de la cara de atrás.',
+      'n4.m.D.x': 'Gira solo la cara de abajo exterior en sentido horario, visto desde abajo. La fila inferior de la cara frontal se va a la DERECHA.',
+      'n4.m.D.xp': 'Antihorario visto desde abajo: esa fila se va a la IZQUIERDA.',
+      'n4.m.D.x2': 'Media vuelta: esa fila termina atrás.',
+      'n4.m.L.x': 'Gira solo la cara izquierda exterior en sentido horario, visto desde el lado izquierdo. La columna izquierda de la cara frontal BAJA.',
+      'n4.m.L.xp': 'Antihorario visto desde el lado izquierdo: esa columna SUBE.',
+      'n4.m.L.x2': 'Media vuelta: esa columna termina atrás.',
+      'n4.m.Fw.x': 'Gira la cara frontal junto con la capa interior que tiene justo detrás, en sentido horario tal como ves el frente.',
+      'n4.m.Fw.xp': 'Antihorario, tal como lo ves.',
+      'n4.m.Fw.x2': 'Media vuelta de las dos capas del frente.',
+      'n4.m.D.call': 'D, L y B parecen al revés que U, R y F porque no estás mirando esas caras. «Horario» siempre se juzga mirando de frente la cara que giras: en D, desde abajo. Por eso D manda la fila frontal a la derecha, al revés que U.',
+      'n4.m.L.call': 'D, L y B parecen al revés que U, R y F porque no estás mirando esas caras. «Horario» siempre se juzga mirando de frente la cara que giras: en L, desde el lado izquierdo. Por eso L baja la columna frontal, al revés que R.',
+      'n4.m.B.call': 'D, L y B parecen al revés que U, R y F porque no estás mirando esas caras. «Horario» siempre se juzga mirando de frente la cara que giras: en B, desde atrás.',
       'n4.m.2R.x': 'Gira solo la capa interior junto a la cara derecha, en el mismo sentido que R. La segunda columna desde la derecha de la cara frontal SUBE. Las caras exteriores no se mueven.',
       'n4.m.2R.xp': 'Lo contrario: esa columna BAJA.',
       'n4.m.2R.x2': 'Media vuelta de esa capa.',
@@ -251,7 +279,7 @@
       'n4.par.limit': 'Si, con las esquinas colocadas, tus aristas dobles coinciden con una Ua, Ub, H o Z, resuélvelas como dice el Entrenador (con las versiones de 4x4 de la H y la Z). Cualquier otra disposición impar la cubre la última tarjeta. Un intercambio en diagonal de dos esquinas con todas las aristas resueltas no está cubierto aquí.',
 
       'n4.tr.title': 'Algoritmos del Entrenador en un 4x4',
-      'n4.tr.lead': 'Los algoritmos del Entrenador están escritos para un 3x3, donde una r o f minúscula también gira la capa del medio y M es el corte del medio. En un 4x4 el medio son dos capas interiores, así que seis de los dieciséis algoritmos (los que llevan r, f o M) rompen los centros y desemparejan aristas dobles si los haces tal como están escritos. Cambia los movimientos así y hacen exactamente lo mismo que en un 3x3:',
+      'n4.tr.lead': 'Los algoritmos del Entrenador del 3x3 están escritos para un 3x3, donde una r o f minúscula también gira la capa del medio y M es el corte del medio. En un 4x4 el medio son dos capas interiores, así que seis de los dieciséis algoritmos (los que llevan r, f o M) rompen los centros y desemparejan aristas dobles si los haces tal como están escritos. El Entrenador en modo 4x4 ya los muestra reescritos. Para reescribir uno tú mismo, cambia los movimientos así y hace exactamente lo mismo que en un 3x3:',
       'n4.tr.map.r': 'r pasa a ser 3Rw (tres capas, como R).',
       'n4.tr.map.f': 'f pasa a ser 3Fw (tres capas, como F).',
       'n4.tr.map.M': "M pasa a ser 2L 2R'; M' pasa a ser 2L' 2R; M2 pasa a ser 2L2 2R2 (las dos capas interiores giran como L).",
@@ -272,7 +300,7 @@
 
       'n4.c.oll-parity.title': 'Paridad de OLL: una arista doble volteada',
       'n4.c.oll-parity.rec': 'En el paso 1 del Entrenador (cruz amarilla), con las aristas ya emparejadas, cuenta las aristas dobles que muestran amarillo arriba. En un 3x3 son siempre 0, 2 o 4. Si ves un número impar (1 o 3), es paridad de OLL. Pon delante cualquier arista doble que muestre amarillo de lado: con 3 aristas dobles amarillas arriba hay una así; con solo 1 hay tres y sirve cualquiera.',
-      'n4.c.oll-parity.note': 'El algoritmo voltea la arista doble de delante y deja todas las demás piezas donde estaban. Con 3 aristas dobles amarillas arriba, la cruz amarilla queda completa. Con solo 1, dos aristas dobles siguen mostrando amarillo de lado: es una línea o una L normal, así que haz el paso 1 del Entrenador como siempre antes del paso 2 (la forma de L y el punto necesitan su versión de 4x4, en la lista de abajo).',
+      'n4.c.oll-parity.note': 'El algoritmo voltea la arista doble de delante y deja todas las demás piezas donde estaban. Con 3 aristas dobles amarillas arriba, la cruz amarilla queda completa. Con solo 1, dos aristas dobles siguen mostrando amarillo de lado: es una línea o una L normal, así que haz el paso 1 del Entrenador como siempre antes del paso 2 (la forma de L necesita su versión de 4x4, en la lista de abajo).',
       'n4.c.oll-parity.alg4': 'Versiones de 4x4 de los algoritmos del paso 1 que llevan f:',
       'n4.c.pll-opposite.title': 'Paridad de PLL: dos aristas dobles opuestas intercambiadas',
       'n4.c.pll-opposite.rec': 'En el paso 4 del Entrenador (permutar aristas), con las esquinas ya colocadas, dos aristas dobles opuestas (delante y atrás, o izquierda y derecha) están cada una en el sitio de la otra y las otras dos están bien. Ningún caso del 3x3 se ve así: la Ua y la Ub mueven tres aristas y la H y la Z mueven cuatro.',
@@ -375,6 +403,7 @@
       '<li><b class="nt-mv">' + esc(m) + '</b> <span>' + esc(T('n4.m.' + m + '.x')) + '</span></li>' +
       '<li><b class="nt-mv">' + esc(primeOf(m)) + '</b> <span>' + esc(T('n4.m.' + m + '.xp')) + '</span></li>' +
       '<li><b class="nt-mv">' + esc(m + '2') + '</b> <span>' + esc(T('n4.m.' + m + '.x2')) + '</span></li></ul>';
+    if (CALLOUTS[m]) h += '<p class="nt-callout" role="note">' + esc(T('n4.m.' + m + '.call')) + '</p>';
     if (nv.equiv) {
       h += '<p class="n4-equiv">' + esc(T('n4.equiv')) + ' <code>' + esc(nv.equiv.split(' ').join(' + ')) + '</code></p>';
     }
@@ -601,6 +630,7 @@
     STRINGS: STRINGS,
     NOTATION: P.NOTATION,
     CASES: P.CASES,
+    CALLOUTS: CALLOUTS,
     afterState: afterState,
     stepsFor: stepsFor,
     build: build,

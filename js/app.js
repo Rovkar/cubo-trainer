@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var S = Storage, St = Stats, I = I18N;
+  var S = Storage, St = Stats, I = I18N, P = Puzzle;
   var t = I.t;
   var $ = function (id) { return document.getElementById(id); };
   var esc = escHtml;
@@ -17,16 +17,38 @@
     cfop: ['cross', 'f2l', 'oll', 'pll']
   };
 
+  // 4x4: ajustes propios (phaseMode4, customPhases4, scrambleLength4). No estan en defSettings(): se leen con
+  // valor por defecto y solo se escriben cuando el usuario los cambia (asi no se reescriben los perfiles existentes).
+  var PRESETS4 = {
+    reduction: ['centers', 'edges', 'stage3'],
+    detailed: ['centers', 'edges', 'cross', 'f2l', 'lastLayer']
+  };
+  var LEN4 = { min: 30, max: 60, def: 40 };
+  function clampLen4(v) {
+    v = parseInt(v, 10);
+    return isFinite(v) ? Math.max(LEN4.min, Math.min(LEN4.max, v)) : LEN4.def;
+  }
+  function phaseMode4() {
+    var v = S.settings().phaseMode4;
+    return v === 'reduction' || v === 'detailed' || v === 'custom' ? v : 'off';
+  }
+  function customPhases4() { var v = S.settings().customPhases4; return typeof v === 'string' ? v : ''; }
+  function scrambleLen4() { return clampLen4(S.settings().scrambleLength4); }
+  // Modo de fases del puzzle actual
+  function curPhaseMode() { return P.is4() ? phaseMode4() : S.settings().phaseMode; }
+
   function phaseList() {
-    var s = S.settings();
-    if (s.phaseMode === 'off') return null;
-    if (PRESETS[s.phaseMode]) return PRESETS[s.phaseMode].map(function (k) { return t('phase.' + k); });
-    var l = (s.customPhases || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    var s = S.settings(), p4 = P.is4(), mode = curPhaseMode(), presets = p4 ? PRESETS4 : PRESETS;
+    if (mode === 'off') return null;
+    if (presets[mode]) return presets[mode].map(function (k) { return t('phase.' + k); });
+    var l = ((p4 ? customPhases4() : s.customPhases) || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
     return l.length ? l : null;
   }
   // Atributo data-i18n + texto actual: d('clave') se concatena justo antes de cerrar la etiqueta de apertura
   function d(key) { return 'data-i18n="' + key + '">' + esc(t(key)); }
-  function times() { return S.activeSession().solves.map(St.effectiveTime); }
+  // Solo las resoluciones del puzzle actual (las que no tienen el campo son de 3x3)
+  function solves() { return P.solvesOf(S.activeSession()); }
+  function times() { return solves().map(St.effectiveTime); }
   function fmtSolve(s) {
     var e = St.effectiveTime(s);
     if (s.penalty === 'DNF') return 'DNF(' + F(s.time) + ')';
@@ -36,13 +58,16 @@
   function phaseKeyOrRaw(n) { return I.phaseKey(n) || n; }
 
   // ---------- red en cruz ----------
-  function netSvg(state) {
-    var C = Cube.COLORS, pos = { U: [3, 0], L: [0, 3], F: [3, 3], R: [6, 3], B: [9, 3], D: [3, 6] };
+  // Red en cruz NxN: cada cara ocupa 30x30 unidades (en 3x3 cada pegatina es de 10, en 4x4 de 7.5)
+  function netSvg(state, N) {
+    N = N || 3;
+    var C = P.engine().COLORS, pos = { U: [1, 0], L: [0, 1], F: [1, 1], R: [2, 1], B: [3, 1], D: [1, 2] };
+    var cell = 30 / N, rx = N > 3 ? 1 : 1.5;
     var out = '<svg class="net" viewBox="-1 -1 122 92" role="img" aria-label="' + esc(t('net.aria')) + '">';
     Object.keys(pos).forEach(function (f) {
-      for (var i = 0; i < 9; i++) {
-        var x = (pos[f][0] + i % 3) * 10 + 1, y = (pos[f][1] + Math.floor(i / 3)) * 10 + 1;
-        out += '<rect x="' + x + '" y="' + y + '" width="9" height="9" rx="1.5" fill="' + C[state[f][i]] + '" stroke="var(--stk)" stroke-width="0.4"/>';
+      for (var i = 0; i < N * N; i++) {
+        var x = pos[f][0] * 30 + (i % N) * cell + 1, y = pos[f][1] * 30 + Math.floor(i / N) * cell + 1;
+        out += '<rect x="' + x + '" y="' + y + '" width="' + (cell - 1) + '" height="' + (cell - 1) + '" rx="' + rx + '" fill="' + C[state[f][i]] + '" stroke="var(--stk)" stroke-width="0.4"/>';
       }
     });
     return out + '</svg>';
@@ -61,7 +86,7 @@
     return b;
   }
   function solveModal(id) {
-    var sv = S.activeSession().solves.filter(function (x) { return x.id === id; })[0];
+    var sv = solves().filter(function (x) { return x.id === id; })[0];
     if (!sv) return;
     var h = '<h3>' + esc(t('solve.title', { time: fmtSolve(sv) })) + '</h3><p class="muted">' + esc(fmtDate(sv.date)) + '</p>' +
       '<p class="muted small">' + esc(t('scramble.label')) + '</p><code class="alg">' + esc(sv.scramble) + '</code>';
@@ -94,8 +119,9 @@
   function renderSessions() {
     var dt = S.get();
     $('session-select').innerHTML = dt.sessions.map(function (s) {
+      var n = P.solvesOf(s).length;
       return '<option value="' + s.id + '"' + (s.id === dt.activeSessionId ? ' selected' : '') + '>' +
-        esc(t(s.solves.length === 1 ? 'profile.opt.one' : 'profile.opt.many', { name: s.name, n: s.solves.length })) + '</option>';
+        esc(t(n === 1 ? 'profile.opt.one' : 'profile.opt.many', { name: s.name, n: n })) + '</option>';
     }).join('');
   }
   function refreshAll() {
@@ -117,20 +143,22 @@
       '<div id="phases" class="phases"></div>' +
       '<details class="card settings" id="settings"><summary ' + d('set.title') + '</summary><div class="settings-grid">' +
       '<label class="check"><input type="checkbox" id="s-insp"> <span ' + d('set.inspection') + '</span></label>' +
-      '<label><span ' + d('set.phaseMode') + '</span> <select id="s-phase"><option value="off" ' + d('set.phase.off') + '</option>' +
+      '<label id="s-phase-wrap"><span ' + d('set.phaseMode') + '</span> <select id="s-phase"><option value="off" ' + d('set.phase.off') + '</option>' +
       '<option value="beginner" ' + d('set.phase.beginner') + '</option>' +
       '<option value="cfop" ' + d('set.phase.cfop') + '</option><option value="custom" ' + d('set.phase.custom') + '</option></select></label>' +
       '<label id="s-custom-wrap"><span ' + d('set.customPhases') + '</span> <input type="text" id="s-custom" placeholder="' + esc(t('set.customPlaceholder')) + '" data-i18n-placeholder="set.customPlaceholder"></label>' +
+      '<label id="s-phase4-wrap"><span ' + d('set.phaseMode') + '</span> <select id="s-phase4"><option value="off" ' + d('set.phase.off') + '</option>' +
+      '<option value="reduction" ' + d('set.phase4.reduction') + '</option>' +
+      '<option value="detailed" ' + d('set.phase4.detailed') + '</option><option value="custom" ' + d('set.phase.custom') + '</option></select></label>' +
+      '<label id="s-custom4-wrap"><span ' + d('set.customPhases') + '</span> <input type="text" id="s-custom4" placeholder="' + esc(t('set.customPlaceholder4')) + '" data-i18n-placeholder="set.customPlaceholder4"></label>' +
       '<label class="check"><input type="checkbox" id="s-hide"> <span ' + d('set.hideTime') + '</span></label>' +
-      '<label><span ' + d('set.length') + '</span> <input type="number" id="s-len" min="20" max="25" style="width:70px"></label>' +
+      '<label id="s-len-wrap"><span ' + d('set.length') + '</span> <input type="number" id="s-len" min="20" max="25" style="width:70px"></label>' +
+      '<label id="s-len4-wrap"><span ' + d('set.length4') + '</span> <input type="number" id="s-len4" min="' + LEN4.min + '" max="' + LEN4.max + '" style="width:70px"></label>' +
       '<label class="check"><input type="checkbox" id="s-net"> <span ' + d('set.showNet') + '</span></label>' +
       '</div></details>' +
       '<div class="card"><div id="quick" class="quick"></div></div>' +
       '<div class="card"><h3 ' + d('recent.title') + '</h3><div id="recent"></div></div>';
-    var s = S.settings();
-    $('s-insp').checked = s.inspection; $('s-phase').value = s.phaseMode; $('s-custom').value = s.customPhases;
-    $('s-hide').checked = s.hideTime; $('s-len').value = s.scrambleLength; $('s-net').checked = s.showNet;
-    $('s-custom-wrap').style.display = s.phaseMode === 'custom' ? '' : 'none';
+    refreshSettings();
 
     $('b-new').onclick = newScramble;
     $('b-copy').onclick = function () {
@@ -150,6 +178,17 @@
       renderPhases({ state: 'idle', splits: [], ms: 0 });
     };
     $('s-custom').onchange = function () { S.setting('customPhases', this.value); renderPhases({ state: 'idle', splits: [], ms: 0 }); };
+    // ajustes de 4x4: claves propias, se escriben solo al cambiarlos
+    $('s-phase4').onchange = function () {
+      S.setting('phaseMode4', this.value);
+      $('s-custom4-wrap').style.display = this.value === 'custom' ? '' : 'none';
+      renderPhases({ state: 'idle', splits: [], ms: 0 });
+    };
+    $('s-custom4').onchange = function () { S.setting('customPhases4', this.value); renderPhases({ state: 'idle', splits: [], ms: 0 }); };
+    $('s-len4').onchange = function () {
+      var v = clampLen4(this.value); this.value = v;
+      S.setting('scrambleLength4', v); newScramble();
+    };
     $('s-hide').onchange = function () { S.setting('hideTime', this.checked); };
     $('s-len').onchange = function () {
       var v = Math.max(20, Math.min(25, parseInt(this.value, 10) || 20)); this.value = v;
@@ -164,11 +203,23 @@
       getOptions: function () { return { inspection: S.settings().inspection, phases: phaseList() }; },
       onUpdate: paintTimer,
       onFinish: function (r) {
-        S.addSolve({ time: r.time, penalty: r.penalty, scramble: scramble, date: Date.now(), splits: r.splits, phases: r.phases });
+        S.addSolve({ time: r.time, penalty: r.penalty, scramble: scramble, date: Date.now(), splits: r.splits, phases: r.phases, puzzle: P.current() });
         newScramble();
         renderSessions(); renderTimerSide();
       }
     });
+  }
+
+  // Valores de los controles de ajustes y cuales se ven: los de 3x3 o los de 4x4 segun el puzzle actual
+  function refreshSettings() {
+    if (!$('s-insp')) return;
+    var s = S.settings(), p4 = P.is4();
+    $('s-insp').checked = s.inspection; $('s-hide').checked = s.hideTime; $('s-net').checked = s.showNet;
+    $('s-phase').value = s.phaseMode; $('s-custom').value = s.customPhases; $('s-len').value = s.scrambleLength;
+    $('s-phase4').value = phaseMode4(); $('s-custom4').value = customPhases4(); $('s-len4').value = scrambleLen4();
+    function show(id, on) { $(id).style.display = on ? '' : 'none'; }
+    show('s-phase-wrap', !p4); show('s-custom-wrap', !p4 && s.phaseMode === 'custom'); show('s-len-wrap', !p4);
+    show('s-phase4-wrap', p4); show('s-custom4-wrap', p4 && phaseMode4() === 'custom'); show('s-len4-wrap', p4);
   }
 
   function paintTimer(tm) {
@@ -213,8 +264,7 @@
   }
 
   function newScramble() {
-    var len = S.settings().scrambleLength;
-    scramble = Cube.randomScramble(len);
+    scramble = P.scramble(S.settings().scrambleLength, scrambleLen4());
     $('scramble').textContent = scramble;
     drawNet();
   }
@@ -222,7 +272,7 @@
     var show = S.settings().showNet;
     $('net-wrap').style.display = show ? '' : 'none';
     if (!show) return;
-    try { $('net').innerHTML = netSvg(Cube.applyAlg(Cube.solved('wca'), scramble)); }
+    try { var E = P.engine(); $('net').innerHTML = netSvg(E.applyAlg(E.solved('wca'), scramble), P.N()); }
     catch (e) { $('net').innerHTML = ''; }
   }
 
@@ -245,7 +295,7 @@
     $('quick').innerHTML = q(esc(t('stat.single')), o.cur, o.best) + q('ao5', o.ao5, o.bao5) + q('ao12', o.ao12, o.bao12) +
       '<div class="q"><div class="q-l">' + esc(t('stat.mean')) + '</div><div class="q-v">' + F(o.mean) + '</div><div class="muted small">' +
       esc(t(o.n === 1 ? 'stat.count.one' : 'stat.count.many', { n: o.n })) + '</div></div>';
-    var sv = S.activeSession().solves, last = sv.slice(-10).reverse();
+    var sv = solves(), last = sv.slice(-10).reverse();
     $('recent').innerHTML = last.length ? '<ul class="solves">' + last.map(function (s, i) {
       return '<li data-id="' + s.id + '"><span class="muted n">' + (sv.length - i) + '</span>' +
         '<a href="#" class="stime" data-a="view">' + esc(fmtSolve(s)) + '</a>' + actionsHtml(s) + '</li>';
@@ -343,22 +393,22 @@
   // Cabecera fija en inglés (no se traduce): el CSV tiene las mismas columnas en cualquier idioma.
   var CSV_HEADER = 'n,time_s,penalty,ao5,ao12,scramble,date,splits';
   function exportCsv() {
-    var ses = S.activeSession(), arr = times(), a5 = St.rollingAverage(arr, 5), a12 = St.rollingAverage(arr, 12);
+    var ses = S.activeSession(), sv = solves(), arr = times(), a5 = St.rollingAverage(arr, 5), a12 = St.rollingAverage(arr, 12);
     function q(s) { return '"' + String(s).replace(/"/g, '""') + '"'; }
     function sec(ms) { return ms === null ? '' : ms === Infinity ? 'DNF' : (ms / 1000).toFixed(2); }
     var rows = [CSV_HEADER];
-    ses.solves.forEach(function (s, i) {
+    sv.forEach(function (s, i) {
       rows.push([i + 1, s.penalty === 'DNF' ? 'DNF' : sec(St.effectiveTime(s)), s.penalty || '', sec(a5[i]), sec(a12[i]),
         q(s.scramble), q(new Date(s.date).toISOString()), q(s.splits ? s.splits.map(function (x) { return (x / 1000).toFixed(2); }).join(' ') : '')].join(','));
     });
-    saveFile(ses.name.replace(/[^\w\-]+/g, '_') + '.csv', '﻿' + rows.join('\n'), 'text/csv');
+    saveFile(ses.name.replace(/[^\w\-]+/g, '_') + (P.is4() ? '_4x4' : '') + '.csv', '﻿' + rows.join('\n'), 'text/csv');
   }
 
   function renderStats() {
     if (!$('st-table')) return;
-    var sv = S.activeSession().solves, arr = times(), o = summary(arr);
+    var sv = solves(), arr = times(), o = summary(arr);
     function row(l, c, b) { return '<tr><th>' + l + '</th><td>' + F(c) + '</td><td>' + F(b) + '</td></tr>'; }
-    $('st-table').innerHTML = '<table><thead><tr><th></th><th>' + esc(t('stats.current')) + '</th><th>' + esc(t('stats.best')) + '</th></tr></thead><tbody>' +
+    $('st-table').innerHTML = '<table><thead><tr><th>' + esc(P.current()) + '</th><th>' + esc(t('stats.current')) + '</th><th>' + esc(t('stats.best')) + '</th></tr></thead><tbody>' +
       row(esc(t('stat.single')), o.cur, o.best) + row('ao5', o.ao5, o.bao5) + row('ao12', o.ao12, o.bao12) + row('ao50', o.ao50, o.bao50) +
       row('ao100', o.ao100, o.bao100) + '<tr><th>' + esc(t('stat.mean')) + '</th><td colspan="2">' + F(o.mean) + '</td></tr>' +
       '<tr><th>' + esc(t('stats.solves')) + '</th><td colspan="2">' + o.n + '</td></tr></tbody></table>';
@@ -456,13 +506,7 @@
   function renderAll() {
     renderSessions(); renderTimerSide();
     renderPhases({ state: 'idle', splits: [], ms: 0 });
-    var s = S.settings();
-    if ($('s-insp')) {
-      $('s-insp').checked = s.inspection; $('s-phase').value = s.phaseMode; $('s-custom').value = s.customPhases;
-      $('s-hide').checked = s.hideTime; $('s-len').value = s.scrambleLength; $('s-net').checked = s.showNet;
-      $('s-custom-wrap').style.display = s.phaseMode === 'custom' ? '' : 'none';
-      drawNet();
-    }
+    if ($('s-insp')) { refreshSettings(); drawNet(); }
     if (tab === 'stats') renderStats();
     if (tab === 'plan') PlanView.render();
     Trainer.render();
@@ -508,10 +552,35 @@
     if (tab === 'stats') drawChart();
   }
 
+  // ---------- puzzle (3x3 | 4x4) ----------
+  function updatePuzzleButtons() {
+    document.querySelectorAll('.puzzle-btn').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.puzzle === P.current() ? 'true' : 'false');
+    });
+    document.documentElement.setAttribute('data-puzzle', P.current());
+  }
+  // Como el idioma: solo repinta. Reinicia el cronometro (el estado en curso era del otro puzzle), pide mezcla nueva
+  // y refresca todo lo que depende del puzzle. Nunca reconstruye vistas ni crea un segundo CubeTimer.
+  function onPuzzleChange() {
+    // Puzzle.set traga las excepciones de los oyentes: cada paso va aislado y se registra, para que un fallo en una vista
+    // no deje sin actualizar las demas (ni quede mudo)
+    function step(fn) { try { fn(); } catch (e) { if (window.console) console.error('puzzle change:', e); } }
+    step(function () { if (timer) timer.reset(); }); // vuelve a idle y repinta el cronometro
+    step(updatePuzzleButtons);
+    step(refreshSettings);
+    step(newScramble);
+    // el Entrenador descarta antes su caso en curso (era del otro puzzle): renderAll() lo repinta ya en el modo nuevo
+    step(function () { if (window.Trainer && typeof Trainer.onPuzzleChange === 'function') Trainer.onPuzzleChange(); });
+    step(renderAll);
+    step(function () { PlanView.render(); });
+    step(function () { if (window.NotationView) NotationView.render(); });
+  }
+
   function init() {
     S.get();
     I.apply(document);
     updateLangButtons();
+    updatePuzzleButtons();
     updateWarn();
     buildTimerView();
     buildStatsView();
@@ -526,6 +595,11 @@
     bindSyncStatus();
     S.onReplace(renderAll);
     I.onChange(onLangChange);
+    P.onChange(onPuzzleChange);
+    $('puzzle-switch').addEventListener('click', function (e) {
+      var b = e.target.closest('.puzzle-btn');
+      if (b) P.set(b.dataset.puzzle);
+    });
     $('lang-switch').addEventListener('click', function (e) {
       var b = e.target.closest('.lang-btn');
       if (b) I.setLang(b.dataset.lang);

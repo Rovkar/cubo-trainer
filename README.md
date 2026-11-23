@@ -2,7 +2,7 @@
 
 [Español](README.es.md) · **English**
 
-A web app to improve your 3x3 Rubik's cube times (layer-by-layer method): timer with scrambles, per-phase timing, statistics, a last-layer algorithm trainer, a training plan and a move-notation reference. No installation, account or server of its own needed.
+A web app to improve your 3x3 Rubik's cube times (layer-by-layer method) and to learn to solve a 4x4 by reduction: timer with scrambles, per-phase timing, statistics, a last-layer algorithm trainer, a training plan and a move-notation reference. A **3x3 / 4x4** switch in the header changes the whole app between the two puzzles. No installation, account or server of its own needed.
 
 **Use it online:** https://rovkar.github.io/cubo-trainer/
 
@@ -19,22 +19,34 @@ A web app to improve your 3x3 Rubik's cube times (layer-by-layer method): timer 
 - **15 s inspection** (optional): the first press starts the countdown, with warnings at 8 s and 12 s. If you start between 15 and 17 s, +2 is added; after 17 s it is a DNF. **Escape** cancels the inspection.
 - Shortcuts are ignored while you type in a text field or a dialog is open.
 
+## 3x3 / 4x4 mode
+
+Next to the title *Cubo Trainer* there is a **3x3 / 4x4** switch. It changes the whole app, not just one tab. Everything that depends on the puzzle is kept separately for each one:
+
+- **Timer**: scrambles for the puzzle in use (4x4 scrambles use `U D L R F B` and the wide moves `Uw`, `Rw`, `Fw`; 40 moves by default, 30 to 60 in the settings) and the phase presets of the puzzle (for the 4x4: reduction, *Centers · Edges · 3x3 stage*, and a detailed one, *Centers · Edges · Cross · F2L · Last layer*). Every new solve is stored with the puzzle it was for.
+- **Stats**: solves, numbering, quick stats, the list, ao5/ao12/ao50/ao100, the chart, the phase analysis and the CSV export only count the solves of the puzzle in use. Solves saved before the switch existed are 3x3.
+- **Trainer**: the 4x4 mode lists the same 16 last-layer cases with their 4x4 versions (six of them are rewritten, see below). Its status and times are separate from the 3x3 ones.
+- **Plan**: the 4x4 mode shows a short 4x4 plan (diagnosis, centers, edge pairing, last layer and parity, lookahead) for someone who already solves the 3x3 with 4LLL. Its goals are skills, not times, and its milestones are separate from the 3x3 plan. The situation card says which puzzle it is for and uses the ao12 of that puzzle.
+- **Notation**: the 3x3 or the 4x4 move reference, following the mode.
+
+The mode is a device preference, like the language: it is remembered in this browser (`cubotrainer.ntSize`), it is not part of your profile data and it is not synced. Profiles are shared by both puzzles (the profile selector counts the solves of the puzzle in use).
+
 ## Tabs
 
 - **Timer**: scramble (with a net view), timer, settings (inspection, phase mode, hide time, scramble length, show net), quick stats and the last 10 solves with OK / +2 / DNF / delete. Click a time to see its scramble, date and per-phase times.
 - **Trainer**: *Learn* shows the 16 last-layer cases with diagram, algorithm, tip and status (New / Learning / Mastered). *Practice* suggests random cases (more often the ones you are learning and the slowest ones): it gives you the setup, you time the execution and then the solution is revealed. After stopping, Space moves to the next case.
 - **Stats**: single, ao5, ao12, ao50 and ao100 (current and best), a progress chart with the goal of your current phase, an analysis of which phase loses you the most time, the full solve table and profile management (rename, delete, export CSV, JSON backup, import JSON).
 - **Plan**: a phase-by-phase training plan with milestones you can tick off, your current situation based on your ao12 (milestones are per profile), a daily routine and tips.
-- **Notation**: one diagram per move letter (U D R L F B, each with `'` and `2`, plus `r`, `f` and `M`, which the Trainer uses), computed from the cube engine. Each one has a physical description of the turn and a *result on a solved cube* self-check. A **3x3 / 4x4** switch at the top (remembered per device) opens the 4x4 section, described below.
+- **Notation**: in 3x3 mode, one diagram per move letter (U D R L F B, each with `'` and `2`, plus `r`, `f` and `M`, which the Trainer uses), computed from the cube engine. Each one has a physical description of the turn and a *result on a solved cube* self-check. In 4x4 mode it shows the 4x4 section, described below.
 
 ## 4x4 section
 
-For solving a 4x4 by reduction (centers, edge pairing, then the 3x3 steps; six of the 16 Trainer algorithms are rewritten for a 4x4, see below). Open it in **Notation > 4x4**, or with the *Solving a 4x4?* button at the end of **Trainer > Learn**. It has:
+For solving a 4x4 by reduction (centers, edge pairing, then the 3x3 steps; six of the 16 Trainer algorithms are rewritten for a 4x4, see below). Switch to **4x4** in the header and open the **Notation** tab. It has:
 
-- **4x4 notation**: outer face (`R`), inner slice (`2R`), wide move (`Rw`), three-layer wide move (`3Rw`, `3Fw`) and whole-cube rotations (`x`, `y`), each with a before/after diagram whose arrows are computed from the 4x4 engine.
+- **4x4 notation**: outer faces (`U D R L F B`; D, L and B carry the same "looks reversed" explanation as the 3x3 tab), inner slice (`2R`), wide moves (`Rw`, `Uw`, `Fw`: the ones the scrambles use), three-layer wide move (`3Rw`, `3Fw`) and whole-cube rotations (`x`, `y`), each with a before/after diagram whose arrows are computed from the 4x4 engine.
 - **Trainer algorithms on a 4x4**: the Trainer algorithms with `r`, `f` or `M` (T and L orient-corners, L-shape and dot, H and Z) do not work as written on a 4x4: they unpair dedges or use a move that does not exist. The page lists their 4x4 versions (`r` -> `3Rw`, `f` -> `3Fw`, `M` -> `2L 2R'`); each was checked to have exactly the 3x3 effect on a reduced cube. The other 10 work as they are.
 - **The two last-layer parity cases**: OLL parity (an odd number, 1 or 3, of flipped dedges) and PLL parity (two opposite edges, two adjacent edges, two adjacent corners swapped, or any other odd arrangement such as all four edges in a cycle). Each card has a top-view diagram, how to recognize it in the 4-step flow of the Trainer, how to hold the cube, the algorithm and numbered steps with a small diagram after each one. The algorithms and steps were checked by running them on the engine (and, for the engine, against an independent simulator). A general rule covers every odd edge arrangement (parity algorithm once, a half turn, then the normal step 4); a diagonal corner swap with solved edges is not covered.
-- **Careful with `r`**: many tutorials write `r`/`r2` for the inner slice only, but in this app (Notation tab, 3x3) a lowercase `r` means `Rw` (two layers). In the 4x4 section the inner slice is always written `2R` and wide moves `Rw`, never `r`.
+- **Careful with `r`**: many tutorials write `r`/`r2` for the inner slice only, but in this app (3x3 mode) a lowercase `r` means `Rw` (two layers). In the 4x4 section the inner slice is always written `2R` and wide moves `Rw`, never `r`.
 
 ## Profiles
 
@@ -48,7 +60,7 @@ Each person uses their own **profile** (for example, several people sharing one 
 
 ## Language
 
-The app is in **English by default**. Use the **EN / ES** switch in the header to change to Spanish. The choice is remembered per browser and device (it is not part of your profile data and is not synced). The `README.es.md` file is the Spanish version of this document.
+The app is in **English by default**. Use the **EN / ES** switch in the header to change to Spanish. The choice is remembered per browser and device (it is not part of your profile data and is not synced). The 3x3 / 4x4 mode works the same way. The `README.es.md` file is the Spanish version of this document.
 
 ## Where data is stored
 
@@ -79,13 +91,18 @@ node tests/notation.test.js
 node tests/cube4.test.js
 node tests/parity.test.js
 node tests/notation4.test.js
+node tests/plan4.test.js
+node tests/puzzle.test.js
+node tests/trainer4.test.js
 ```
 
 ## Structure
 
 - `index.html`, `css/styles.css`, `css/notation.css`
 - `js/i18n.js`: language handling (English default, Spanish) and UI texts.
-- `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`: cube model, 3D cube drawing, algorithms and plan data (both bilingual).
-- `js/notation.js`: the Notation tab (move diagrams computed from the cube engine, 3x3 / 4x4 switch).
+- `js/puzzle.js`: the 3x3 / 4x4 mode (device preference, helpers to filter the solves of the puzzle in use).
+- `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`, `js/plan4.js`: cube model, 3D cube drawing, algorithms and the 3x3 and 4x4 plan data (all bilingual).
+- `js/notation.js`: the Notation tab (move diagrams computed from the cube engine; it shows the 4x4 section in 4x4 mode).
+- `js/trainer4.js`: the 4x4 version of the Trainer cases (the 16 algorithms rewritten where needed, plus the parity cases).
 - `js/cube4.js`, `js/parity4.js`, `js/notation4.js`: the 4x4 engine, the checked parity algorithms and recipes, and the 4x4 section of the Notation tab.
 - `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistence, statistics, timer, trainer, plan view and startup.

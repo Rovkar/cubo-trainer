@@ -10,6 +10,7 @@
   var DICT = {
     en: {
       'lang.label': 'Language',
+      'puzzle.label': 'Puzzle',
       'common.cancel': 'Cancel', 'common.ok': 'OK', 'common.close': 'Close', 'common.delete': 'Delete', 'common.import': 'Import',
 
       'sync.local': 'Saved in this browser', 'sync.connecting': 'Connecting…', 'sync.synced': 'Synced',
@@ -27,6 +28,7 @@
 
       'phase.cross': 'Cross', 'phase.firstLayer': 'First layer', 'phase.secondLayer': 'Second layer',
       'phase.lastLayer': 'Last layer', 'phase.f2l': 'F2L', 'phase.oll': 'OLL', 'phase.pll': 'PLL',
+      'phase.centers': 'Centers', 'phase.edges': 'Edges', 'phase.stage3': '3x3 stage',
 
       'net.aria': 'Scramble view', 'net.note': 'Scramble with white on top and green in front',
       'scramble.label': 'Scramble', 'scramble.new': 'New scramble', 'scramble.copy': 'Copy',
@@ -40,6 +42,10 @@
       'set.phase.cfop': 'CFOP: Cross, F2L, OLL, PLL', 'set.phase.custom': 'Custom',
       'set.customPhases': 'Phases (comma-separated)', 'set.customPlaceholder': 'Cross, F2L, OLL, PLL',
       'set.hideTime': 'Hide time while solving', 'set.length': 'Scramble length', 'set.showNet': 'Show scramble diagram',
+      'set.phase4.reduction': 'Reduction: Centers, Edges, 3x3 stage',
+      'set.phase4.detailed': 'Detailed: Centers, Edges, Cross, F2L, Last layer',
+      'set.customPlaceholder4': 'Centers, Edges, Cross, F2L, OLL, PLL',
+      'set.length4': 'Scramble length (30-60 moves)',
 
       'quick.best': 'Best {time}', 'stat.single': 'Single', 'stat.mean': 'Mean',
       'stat.count.one': '{n} solve', 'stat.count.many': '{n} solves',
@@ -56,7 +62,7 @@
 
       'manage.rename': 'Rename profile', 'manage.renamePrompt': 'New name for "{name}"', 'manage.delete': 'Delete profile', 'manage.csv': 'Export CSV',
       'manage.json': 'JSON backup', 'manage.import': 'Import JSON',
-      'manage.deleteConfirm': 'Delete profile "{name}" with all its solves and progress?',
+      'manage.deleteConfirm': 'Delete profile "{name}" with all its solves and progress, for both 3x3 and 4x4?',
       'manage.importConfirm': 'Importing will replace ALL your current data. Continue?',
       'manage.imported': 'Data imported', 'manage.importFail': 'Could not import: {msg}',
       'import.invalid': 'Invalid format',
@@ -75,9 +81,6 @@
       'trainer.setup': 'Setup (yellow on top, green in front):',
       'trainer.reveal': 'Show solution', 'trainer.next': 'Next case',
       'trainer.hint': 'Hold Space (or tap here) and release to start; press again to stop',
-      'trainer.n4.title': 'Solving a 4x4?',
-      'trainer.n4.text': 'On a 4x4 two last-layer cases can show up that never happen on a 3x3 (OLL parity and PLL parity). They need their own algorithms, and the Trainer algorithms with r, f or M need a 4x4 version.',
-      'trainer.n4.btn': 'See the 4x4 section',
 
       'plan.situation': 'Status of {name}', 'plan.currentAo12': 'Current ao12:', 'plan.noAo12': 'not enough solves yet (need 12)',
       'plan.currentPhase': 'Current phase:', 'plan.goal': 'Goal:',
@@ -88,6 +91,7 @@
     },
     es: {
       'lang.label': 'Idioma',
+      'puzzle.label': 'Cubo',
       'common.cancel': 'Cancelar', 'common.ok': 'Aceptar', 'common.close': 'Cerrar', 'common.delete': 'Borrar', 'common.import': 'Importar',
 
       'sync.local': 'Guardado en este navegador', 'sync.connecting': 'Conectando…', 'sync.synced': 'Sincronizado',
@@ -105,6 +109,7 @@
 
       'phase.cross': 'Cruz', 'phase.firstLayer': 'Primera capa', 'phase.secondLayer': 'Segunda capa',
       'phase.lastLayer': 'Última capa', 'phase.f2l': 'F2L', 'phase.oll': 'OLL', 'phase.pll': 'PLL',
+      'phase.centers': 'Centros', 'phase.edges': 'Aristas', 'phase.stage3': 'Etapa 3x3',
 
       'net.aria': 'Vista de la mezcla', 'net.note': 'Mezcla con blanco arriba y verde al frente',
       'scramble.label': 'Mezcla', 'scramble.new': 'Nueva mezcla', 'scramble.copy': 'Copiar',
@@ -118,6 +123,10 @@
       'set.phase.cfop': 'CFOP: Cruz, F2L, OLL, PLL', 'set.phase.custom': 'Personalizado',
       'set.customPhases': 'Fases (separadas por comas)', 'set.customPlaceholder': 'Cruz, F2L, OLL, PLL',
       'set.hideTime': 'Ocultar tiempo mientras resuelves', 'set.length': 'Longitud de mezcla', 'set.showNet': 'Mostrar red de la mezcla',
+      'set.phase4.reduction': 'Reducción: Centros, Aristas, Etapa 3x3',
+      'set.phase4.detailed': 'Detallado: Centros, Aristas, Cruz, F2L, Última capa',
+      'set.customPlaceholder4': 'Centros, Aristas, Cruz, F2L, OLL, PLL',
+      'set.length4': 'Longitud de mezcla (30-60 movimientos)',
 
       'quick.best': 'Mejor {time}', 'stat.single': 'Single', 'stat.mean': 'Media',
       'stat.count.one': '{n} resolución', 'stat.count.many': '{n} resoluciones',
@@ -134,7 +143,7 @@
 
       'manage.rename': 'Renombrar perfil', 'manage.renamePrompt': 'Nuevo nombre para "{name}"', 'manage.delete': 'Borrar perfil', 'manage.csv': 'Exportar CSV',
       'manage.json': 'Copia de seguridad JSON', 'manage.import': 'Importar JSON',
-      'manage.deleteConfirm': '¿Borrar el perfil "{name}" con todas sus resoluciones y su progreso?',
+      'manage.deleteConfirm': '¿Borrar el perfil "{name}" con todas sus resoluciones y su progreso, tanto de 3x3 como de 4x4?',
       'manage.importConfirm': 'Importar reemplazará TODOS tus datos actuales. ¿Continuar?',
       'manage.imported': 'Datos importados', 'manage.importFail': 'No se pudo importar: {msg}',
       'import.invalid': 'Formato no válido',
@@ -153,9 +162,6 @@
       'trainer.setup': 'Preparación (amarillo arriba, verde al frente):',
       'trainer.reveal': 'Mostrar solución', 'trainer.next': 'Siguiente caso',
       'trainer.hint': 'Mantén Espacio (o toca aquí) y suelta para empezar; pulsa de nuevo para parar',
-      'trainer.n4.title': '¿Resuelves un 4x4?',
-      'trainer.n4.text': 'En un 4x4 pueden aparecer dos casos de la última capa que nunca pasan en un 3x3 (paridad de OLL y paridad de PLL). Necesitan algoritmos propios, y los algoritmos del Entrenador con r, f o M necesitan una versión de 4x4.',
-      'trainer.n4.btn': 'Ver la sección de 4x4',
 
       'plan.situation': 'Situación de {name}', 'plan.currentAo12': 'ao12 actual:', 'plan.noAo12': 'aún no hay 12 resoluciones',
       'plan.currentPhase': 'Fase actual:', 'plan.goal': 'Meta:',
@@ -172,7 +178,11 @@
     'first layer': 'firstLayer', 'firstlayer': 'firstLayer', 'primera capa': 'firstLayer',
     'second layer': 'secondLayer', 'secondlayer': 'secondLayer', 'segunda capa': 'secondLayer',
     'last layer': 'lastLayer', 'lastlayer': 'lastLayer', 'ultima capa': 'lastLayer',
-    'f2l': 'f2l', 'oll': 'oll', 'pll': 'pll'
+    'f2l': 'f2l', 'oll': 'oll', 'pll': 'pll',
+    // 4x4 (reduccion): centros, aristas (emparejar aristas) y etapa 3x3
+    'centers': 'centers', 'centres': 'centers', 'centros': 'centers',
+    'edges': 'edges', 'edge pairing': 'edges', 'edgepairing': 'edges', 'aristas': 'edges', 'emparejar aristas': 'edges',
+    '3x3 stage': 'stage3', 'stage3': 'stage3', '3x3stage': 'stage3', 'etapa 3x3': 'stage3', 'etapa3': 'stage3'
   };
   function normName(s) {
     var n = String(s).toLowerCase();
@@ -236,8 +246,8 @@
     },
     phaseKey: function (name) {
       if (typeof name !== 'string') return null;
-      var k = PHASE_KEYS[normName(name)];
-      return k || null;
+      var n = normName(name);
+      return Object.prototype.hasOwnProperty.call(PHASE_KEYS, n) ? PHASE_KEYS[n] : null;
     },
     phaseName: function (name) {
       var k = I18N.phaseKey(name);
