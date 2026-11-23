@@ -126,6 +126,21 @@ const en = PLANS4.en, es = PLANS4.es;
   const solved = Cube4.solved('yellowTop');
   check(P.classify(Cube4.applyAlg(solved, P.ALGS.OLL_PARITY)) === 'oll-parity', 'OLL parity algorithm of the plan creates exactly the OLL parity state');
   check(P.classify(Cube4.applyAlg(solved, P.ALGS.PLL_PARITY + ' U2')) === 'pll-opposite', 'PLL parity algorithm followed by U2 is a clean swap of two opposite dedges');
+  // OLL parity in the plan: both variants (3 and only 1 yellow dedge) and the line algorithm of the 1-yellow route
+  ['en', 'es'].forEach((l) => {
+    const sec = PLANS4[l].phases[3].sections[0].items.filter((x) => /OLL/.test(x))[0] || '';
+    check(sec.indexOf('<code>' + P.ALGS.OLL_PARITY + '</code>') >= 0 && sec.indexOf('<code>' + P.ALGS.EO_LINE + '</code>') >= 0, l + ': plan OLL parity bullet has the parity algorithm and the line algorithm');
+    check(/<code>U<\/code>/.test(sec) && /<code>U'<\/code>/.test(sec) && /\b1\b/.test(sec) && /\b3\b/.test(sec), l + ': plan OLL parity bullet covers 3 and 1 yellow dedges and the quarter turn');
+  });
+  // the route the plan gives for 1 yellow dedge finishes the cross, on the engine
+  (function () {
+    const photo = Cube4.applyAlg(Cube4.solved('yellowTop'), P.CASES.filter((c) => c.id === 'oll-parity-1')[0].setup);
+    const k = P.holds(photo, 'singleYellowBack')[0];
+    ['U', "U'"].forEach((turn) => {
+      const end = Cube4.applyAlg(photo, ['', 'y', 'y2', "y'"][k] + ' ' + P.ALGS.OLL_PARITY + ' ' + turn + ' ' + P.ALGS.EO_LINE);
+      check(P.PREDICATES('crossDone', end), 'plan route for 1 yellow dedge (' + turn + ') completes the cross');
+    });
+  })();
   // the plan names the six algorithms that change: the Parity4 data agrees with the count
   check(P.TRAINER.filter((x) => x.changed).length === 6 && /six/.test(en.phases[3].summary) && /seis/.test(es.phases[3].summary), 'phase 3 talks about the six rewritten algorithms and there are six');
   // the plan never uses the removed / ambiguous wording

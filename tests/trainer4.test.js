@@ -50,10 +50,10 @@ const LEARN = ALL.filter((c) => !c.practice);
   const ids = ALL.map((c) => c.id);
   check(new Set(ids).size === ids.length, 'ids are unique');
   check(ids.every((id) => /^q4-[a-z0-9-]+$/.test(id)), 'ids start with q4- and have no dots or slashes');
-  check(ALL.length === 16 + 5, '16 Trainer cases + 5 parity cases (got ' + ALL.length + ')');
-  check(PRACTICE.length === 18 && LEARN.length === 3, 'Practice pool: the 16 + oll parity + pll opposite; 3 learn-only cards');
-  check(eq(LEARN.map((c) => c.id), ['q4-pll-adjacent', 'q4-pll-corners', 'q4-pll-cycle']), 'learn-only cards are the three recipe parity cases');
-  check(ids.indexOf('q4-oll-parity') >= 0 && ids.indexOf('q4-pll-opposite') >= 0, 'oll parity and pll opposite are practice cases');
+  check(ALL.length === 16 + 7, '16 Trainer cases + 7 parity cases (got ' + ALL.length + ')');
+  check(PRACTICE.length === 19 && LEARN.length === 4, 'Practice pool: the 16 + both oll parity variants + pll opposite; 4 learn-only cards');
+  check(eq(LEARN.map((c) => c.id), ['q4-eo-odd', 'q4-pll-adjacent', 'q4-pll-corners', 'q4-pll-cycle']), 'learn-only cards: the yellow-cross odd-count card and the three recipe parity cases');
+  check(ids.indexOf('q4-oll-parity') >= 0 && ids.indexOf('q4-oll-parity-1') >= 0 && ids.indexOf('q4-pll-opposite') >= 0, 'both oll parity variants and pll opposite are practice cases');
   ALGS3.forEach((a3) => {
     const c = T.caseById('q4-' + a3.id);
     check(!!c, 'translated case q4-' + a3.id);
@@ -69,7 +69,15 @@ const LEARN = ALL.filter((c) => !c.practice);
   check(T.caseById('q4-pll-opposite').alg === P.ALGS.PLL_PARITY + ' U2', 'pll opposite is the parity algorithm then U2');
   check(T.caseById('q4-oll-parity').set === 'OLLP' && T.caseById('q4-pll-opposite').set === 'PLLP', 'new sets OLLP and PLLP');
   check(T.SET_ORDER.every((s) => ALL.some((c) => c.set === s)) && ALL.every((c) => T.SET_ORDER.indexOf(c.set) >= 0), 'SET_ORDER covers every set');
-  check(T.practiceCases().length === 18, 'practiceCases()');
+  check(T.practiceCases().length === 19, 'practiceCases()');
+  // the new cases
+  const odd = T.caseById('q4-eo-odd'), p1 = T.caseById('q4-oll-parity-1');
+  check(odd.set === 'EO' && odd.practice === false && !odd.alg && odd.mask === 'eo', 'q4-eo-odd: Learn-only card in the yellow cross (EO) set, no algorithm');
+  check(odd.setName === ALGS3.filter((a) => a.set === 'EO')[0].setName, 'q4-eo-odd shares the set name of the yellow cross set');
+  check(p1.set === 'OLLP' && p1.practice === true && p1.mask === 'eo' && p1.alg === P.ALGS.OLL_PARITY + ' U ' + P.ALGS.EO_LINE, 'q4-oll-parity-1: Practice case, OLL parity + U + the line algorithm');
+  check(p1.alg === P.ALGS.OLL_PARITY + " U F R U R' U' F'", 'q4-oll-parity-1 sequence is written out as OLL parity + U + F R U R\' U\' F\'');
+  check(eq(ALL.filter((c) => c.set === 'EO').map((c) => c.id), ['q4-eo-line', 'q4-eo-l', 'q4-eo-dot', 'q4-eo-odd']), 'the yellow cross set: line, L shape, dot, then the odd-count card');
+  check(eq(ALL.filter((c) => c.set === 'OLLP').map((c) => c.id), ['q4-oll-parity', 'q4-oll-parity-1']), 'the OLL parity set shows both variants');
 })();
 
 // ---------------------------------------------------------------------------------------------
@@ -132,6 +140,22 @@ const LEARN = ALL.filter((c) => !c.practice);
       const after = Cube4.applyAlg(P.rotateY(st, ks[0]), co.alg);
       check(P.PREDICATES('crossDone', after) && P.aufSolve(after) !== null, co.id + ' [' + auf + ']: hold, algorithm, then an AUF solves it');
     });
+    // 1 yellow dedge: turn the whole cube until the single yellow dedge is at the back, then the sequence completes the cross
+    const c1 = T.caseById('q4-oll-parity-1');
+    T.AUFS.forEach((auf) => {
+      const st = Cube4.applyAlg(Y(), T.setupFor(c1, auf));
+      check(P.classify(st) === 'oll-parity-1', c1.id + ' [' + auf + ']: the setup has 1 yellow dedge on top');
+      const ks = P.holds(st, 'singleYellowBack');
+      check(ks.length === 1, c1.id + ' [' + auf + ']: exactly one y rotation puts the yellow dedge at the back');
+      if (!ks.length) return;
+      const after = Cube4.applyAlg(P.rotateY(st, ks[0]), c1.alg);
+      check(P.PREDICATES('crossDone', after), c1.id + ' [' + auf + ']: hold, then the sequence completes the yellow cross');
+      // U' instead of the U in the middle works as well (the card says so)
+      check(P.PREDICATES('crossDone', Cube4.applyAlg(P.rotateY(st, ks[0]), c1.alg.replace(' U F', " U' F"))), c1.id + ' [' + auf + ']: with U\' in the middle too');
+      // the reference simulator agrees with the engine on the whole run
+      const pre = T4.ref.apply(refY(), expand3(Cube4.invertAlg(c1.alg) + ' ' + auf + ' ' + ['', 'y', 'y2', "y'"][ks[0]]));
+      check(eq(T4.refToFaces(T4.ref.apply(pre, expand3(c1.alg))), after), c1.id + ' [' + auf + ']: reference simulator agrees');
+    });
     const cp = T.caseById('q4-pll-opposite');
     T.AUFS.forEach((auf) => {
       let st = Cube4.applyAlg(Y(), T.setupFor(cp, auf));
@@ -148,6 +172,7 @@ const LEARN = ALL.filter((c) => !c.practice);
   // the practice setup of the oll parity case really is one flipped dedge
   const stOll = Cube4.applyAlg(Y(), T.setupFor('q4-oll-parity', ''));
   check(P.classify(stOll) === 'oll-parity', 'q4-oll-parity setup classifies as oll-parity');
+  check(P.classify(Cube4.applyAlg(Y(), T.setupFor('q4-oll-parity-1', ''))) === 'oll-parity-1', 'q4-oll-parity-1 setup classifies as oll-parity-1');
   const stOpp = Cube4.applyAlg(Y(), T.setupFor('q4-pll-opposite', ''));
   check(P.classify(stOpp) === 'pll-opposite', 'q4-pll-opposite setup classifies as pll-opposite');
   let threw = false;
@@ -191,6 +216,14 @@ function expand(v3) {
       check(eq(Cube4.lastLayerView(s4, mask), expand(Cube.lastLayerView(s3, mask))), 'view of ' + String(mask) + ' = expanded 3x3 view for ' + s);
     }
   });
+  // the diagrams of the two OLL parity variants and of the yellow-cross card show 3 / 1 / 1 yellow dedges on top
+  const WINGS = [1, 2, 4, 7, 8, 11, 13, 14];
+  const yellowDedges = (view) => WINGS.filter((i) => view.u[i] === 'y').length / 2;
+  check(yellowDedges(T.viewOf('q4-oll-parity')) === 3, 'q4-oll-parity diagram: 3 yellow dedges on top');
+  check(yellowDedges(T.viewOf('q4-oll-parity-1')) === 1, 'q4-oll-parity-1 diagram: 1 yellow dedge on top');
+  check(yellowDedges(T.viewOf('q4-eo-odd')) === 1, 'q4-eo-odd diagram: the 1-yellow case');
+  check(eq(T.viewOf('q4-eo-odd'), Cube4.lastLayerView(P.caseState('oll-parity-1'), 'eo')), 'q4-eo-odd diagram = the Parity4 case oll-parity-1 with the eo mask');
+  check(P.classify(T.stateOf('q4-eo-odd')) === 'oll-parity-1', 'q4-eo-odd state is a 1-yellow case');
   // diagram of every case renders as a 4x4 top view svg
   ALL.forEach((c) => {
     const v = T.viewOf(c);
@@ -277,6 +310,18 @@ function expand(v3) {
     (c => check(!!c.note && /4x4/.test(c.note), l + ': changed cases carry a note'))(T.caseById('q4-eo-l'));
     check(!T.caseById('q4-ocll-sune').note, l + ': unchanged cases carry no note');
   });
+  I18N.lang = saved;
+  // the names and notes of the new cards, in both languages
+  I18N.lang = 'en';
+  check(T.caseById('q4-eo-odd').name === '1 or 3 yellow dedges on top? (OLL parity)', 'en: q4-eo-odd name');
+  check(/1 \(like in the diagram/.test(T.caseById('q4-eo-odd').tip) && /\b3\b/.test(T.caseById('q4-eo-odd').tip) && /OLL parity/.test(T.caseById('q4-eo-odd').tip), 'en: q4-eo-odd recognition note mentions 1 and 3 and OLL parity');
+  check(/3 yellow dedges on top/.test(T.caseById('q4-oll-parity').name) && /only 1 yellow dedge on top/.test(T.caseById('q4-oll-parity-1').name), 'en: the names of the two variants');
+  check(/line algorithm/.test(T.caseById('q4-oll-parity-1').tip) && /back/.test(T.caseById('q4-oll-parity-1').hold) && /U'/.test(T.caseById('q4-oll-parity-1').hold), "en: q4-oll-parity-1 tip mentions the line algorithm; hold: the back and U'");
+  I18N.lang = 'es';
+  check(T.caseById('q4-eo-odd').name === '¿1 o 3 aristas dobles amarillas arriba? (paridad de OLL)', 'es: q4-eo-odd name');
+  check(/1 \(como en el diagrama/.test(T.caseById('q4-eo-odd').tip) && /\b3\b/.test(T.caseById('q4-eo-odd').tip) && /paridad de OLL/.test(T.caseById('q4-eo-odd').tip), 'es: q4-eo-odd recognition note');
+  check(/3 aristas dobles amarillas arriba/.test(T.caseById('q4-oll-parity').name) && /solo 1 arista doble amarilla arriba/.test(T.caseById('q4-oll-parity-1').name), 'es: the names of the two variants');
+  check(/algoritmo de la línea/.test(T.caseById('q4-oll-parity-1').tip) && /atrás/.test(T.caseById('q4-oll-parity-1').hold), 'es: q4-oll-parity-1 tip and hold');
   I18N.lang = saved;
   check(text.en.join() !== text.es.join(), 'the cases change with the language');
   // the note and the cards never write the 3x3-only moves (r, f, M) as 4x4 notation

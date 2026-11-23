@@ -166,7 +166,10 @@ function note(k, v) { (LOG[k] = LOG[k] || new Set()).add(v); }
 // returns array of {ok, why, state}; one entry per branch
 function runSteps(steps, state, tag, ctx) {
   ctx = ctx || {};
-  if (!steps.length) return [{ ok: Cube4.isSolved(state), why: 'end of recipe, solved=' + Cube4.isSolved(state), state: state }];
+  if (!steps.length) {
+    const ok = ctx.done === 'crossDone' ? P.PREDICATES('crossDone', state) : Cube4.isSolved(state);
+    return [{ ok: ok, why: 'end of recipe, ' + (ctx.done || 'solved') + '=' + ok, state: state }];
+  }
   const s = steps[0], rest = steps.slice(1);
   const out = [];
   if (s.do === 'hold') {
@@ -179,9 +182,12 @@ function runSteps(steps, state, tag, ctx) {
     return out;
   }
   if (s.do === 'alg') {
-    const next = Cube4.applyAlg(state, s.alg);
-    if (s.after && !P.PREDICATES(s.after, next)) return [{ ok: false, why: 'after ' + s.alg + ' predicate ' + s.after + ' is false', state: next }];
-    return runSteps(rest, next, tag, ctx);
+    // an equivalent alternative (s.alt) is a second branch: both must reach the same end
+    return [s.alg].concat(s.alt ? [s.alt] : []).reduce((acc, alg) => {
+      const next = Cube4.applyAlg(state, alg);
+      if (s.after && !P.PREDICATES(s.after, next)) return acc.concat([{ ok: false, why: 'after ' + alg + ' predicate ' + s.after + ' is false', state: next }]);
+      return acc.concat(runSteps(rest, next, tag, ctx));
+    }, []);
   }
   if (s.do === 'auf') {
     const a = P.aufSolve(state);
@@ -226,7 +232,7 @@ function runSteps(steps, state, tag, ctx) {
   throw new Error('unknown step ' + s.do);
 }
 function checkCase(c, st, label, steps) {
-  const res = runSteps(steps || c.steps, st, c.id, {});
+  const res = runSteps(steps || c.steps, st, c.id, { done: c.done });
   check(res.length > 0, c.id + ' ' + label + ': at least one branch');
   res.forEach((r) => check(r.ok, c.id + ' ' + label + ': ' + r.why));
   return res;
@@ -236,12 +242,14 @@ function checkCase(c, st, label, steps) {
 // 4. Cases
 // ------------------------------------------------------------------------------------------
 (function () {
-  check(eq(P.CASES.map((c) => c.id), ['oll-parity', 'pll-opposite', 'pll-adjacent', 'pll-corners', 'pll-cycle']), 'case ids fixed');
+  check(eq(P.CASES.map((c) => c.id), ['oll-parity', 'oll-parity-1', 'pll-opposite', 'pll-adjacent', 'pll-corners', 'pll-cycle']), 'case ids fixed (the two OLL parity variants, then the PLL ones)');
   P.CASES.forEach((c) => {
-    check(['oll', 'pll'].indexOf(c.step) >= 0 && ['oll', 'pll'].indexOf(c.mask) >= 0 && typeof c.setup === 'string' && c.setup.length > 0, c.id + ': well-formed');
-    check(c.step === c.mask, c.id + ': mask follows step');
+    check(['oll', 'pll'].indexOf(c.step) >= 0 && ['oll', 'pll', 'eo'].indexOf(c.mask) >= 0 && typeof c.setup === 'string' && c.setup.length > 0, c.id + ': well-formed');
+    check(c.step === c.mask || (c.step === 'oll' && c.mask === 'eo'), c.id + ': mask follows step (the 1-yellow case hides the corners: mask eo)');
+    check(c.done === undefined || c.done === 'crossDone', c.id + ': done is the default (solved) or crossDone');
     c.steps.concat(c.shortcut || []).forEach((s) => {
       check(['hold', 'alg', 'auf', 'then', 'then3x3'].indexOf(s.do) >= 0, c.id + ': step kind ' + s.do);
+      if (s.alt) { check(s.do === 'alg', c.id + ': only alg steps have an alt'); Cube4.parseAlg(s.alt); }
       if (s.when) check(P.PREDICATES.IDS.indexOf(s.when) >= 0, c.id + ': predicate ' + s.when + ' exists');
       if (s.hold) check(P.PREDICATES.IDS.indexOf(s.hold) >= 0, c.id + ': predicate ' + s.hold + ' exists');
       if (s.after) check(P.PREDICATES.IDS.indexOf(s.after) >= 0, c.id + ': predicate ' + s.after + ' exists');
@@ -268,6 +276,7 @@ function checkCase(c, st, label, steps) {
   // each hold step: at least one y orientation exists and holds are as expected
   const hs = (id, pred) => P.holds(P.caseState(id), pred);
   check(eq(hs('oll-parity', 'flippedEdgeFront'), [0]) && eq(hs('oll-parity', 'frontEdgeFlipped'), [0]), 'oll-parity: exactly one hold (flipped edge in front)');
+  check(P.holds(P.caseState('oll-parity-1'), 'singleYellowBack').length === 1 && P.holds(P.caseState('oll-parity-1'), 'oneYellowOnTop').length === 4, 'oll-parity-1: exactly one hold puts the single yellow dedge at the back');
   check(eq(hs('pll-opposite', 'swappedEdgesFrontBack'), [0, 2]), 'pll-opposite: two holds (front/back swapped), either works');
   check(eq(hs('pll-adjacent', 'swappedEdgesFrontRight'), [0]), 'pll-adjacent: one hold');
   check(eq(hs('pll-corners', 'headlightsFrontOrBack'), [0, 2]), 'pll-corners: headlights in front or at the back (2 holds)');
@@ -282,6 +291,7 @@ function checkCase(c, st, label, steps) {
   check(homes(P.caseState('pll-corners'), 'edges') === '0123' && homes(P.caseState('pll-corners'), 'corners') === '3120', 'pll-corners = UFR<->UFL, edges solved');
   check(homes(P.caseState('pll-cycle'), 'edges') === '2310' && homes(P.caseState('pll-cycle'), 'corners') === '0123', 'pll-cycle = four dedges in a 4-cycle, corners solved');
   check(a(P.caseState('oll-parity')).edges.map((x) => (x.oriented ? 1 : 0)).join('') === '0111', 'oll-parity = only UF flipped');
+  check(a(P.caseState('oll-parity-1')).edges.map((x) => (x.oriented ? 1 : 0)).join('') === '0001' && a(P.caseState('oll-parity-1')).edges.every((x) => x.paired), 'oll-parity-1 = only the left dedge (UL) yellow on top, all paired (the photographed pattern)');
   check(changed(P.caseState('pll-adjacent'), Y()).sort().join() === 'F1,F2,R1,R2', 'pll-adjacent changes F1 F2 R1 R2 only');
   check(changed(P.caseState('pll-corners'), Y()).sort().join() === 'F0,F3,L3,R0', 'pll-corners changes F0 F3 L3 R0 only (two corner pieces)');
 })();
@@ -368,18 +378,18 @@ function checkCase(c, st, label, steps) {
   const three = Cube4.applyAlg(Y(), [0, 1, 2].map(flipIn).join(' '));
   const fl = (st) => P.analyze(st).edges.filter((e) => !e.oriented).length;
   check(fl(three) === 3, 'built a state with 3 flipped edges');
-  check(P.classify(three) === 'oll-parity', '3 flipped edges are classified as oll-parity');
+  check(P.classify(three) === 'oll-parity-1', '3 flipped edges (1 yellow dedge on top) are classified as oll-parity-1');
   const k3 = P.holds(three, 'frontEdgeFlipped');
   check(k3.length === 3, '3 flipped edges: 3 holds put a flipped edge in front');
   k3.forEach((k) => {
     const after = Cube4.applyAlg(rotY(three, k), P.ALGS.OLL_PARITY);
     check(fl(after) === 2, '3 flipped edges: after the alg 2 remain (a normal EO case), hold y^' + k);
-    check(P.classify(after) !== 'oll-parity', 'no more OLL parity after the alg');
+    check(P.classify(after) === null, 'no more OLL parity after the alg (2 flipped is a normal EO case)');
   });
   // an even number of flipped edges is not parity
   const two = Cube4.applyAlg(Y(), [0, 1].map(flipIn).join(' '));
-  check(fl(two) === 2 && P.classify(two) !== 'oll-parity', '2 flipped edges: not OLL parity');
-  check(P.classify(Cube4.applyAlg(Y(), [0, 1, 2, 3].map(flipIn).join(' '))) !== 'oll-parity', '4 flipped edges: not OLL parity');
+  check(fl(two) === 2 && P.classify(two) === null, '2 flipped edges: not OLL parity');
+  check(P.classify(Cube4.applyAlg(Y(), [0, 1, 2, 3].map(flipIn).join(' '))) === null, '4 flipped edges: not OLL parity');
 
   // PLL parity inside a normal 4LLL flow: the corner step (T-perm, headlights left) first, edges afterwards, from any AUF of the corner step
   const corners = Cube4.applyAlg(Y(), P.caseById('pll-corners').setup);
@@ -414,6 +424,14 @@ function checkCase(c, st, label, steps) {
   check(oll.u.length === 16 && oll.b.length === 4 && oll.r.length === 4 && oll.f.length === 4 && oll.l.length === 4, 'view shapes');
   check(oll.u[13] === 'x' && oll.u[14] === 'x' && oll.u.filter((c) => c === 'x').length === 2, "oll-parity view: U all yellow except the front dedge ('x' x2)");
   check(eq(oll.f, ['x', 'y', 'y', 'x']) && oll.b.every((c) => c === 'x') && oll.r.every((c) => c === 'x') && oll.l.every((c) => c === 'x'), 'oll-parity view: yellow on the front side stickers of the flipped edge');
+  // the diagram of each variant shows exactly 3 / 1 yellow dedges on top (a dedge = its two wings)
+  const WINGS = [1, 2, 4, 7, 8, 11, 13, 14];
+  const yellowDedges = (view) => WINGS.filter((i) => view.u[i] === 'y').length / 2;
+  check(yellowDedges(oll) === 3, 'oll-parity diagram: 3 yellow dedges on top');
+  const oll1 = v('oll-parity-1');
+  check(yellowDedges(oll1) === 1 && oll1.u[4] === 'y' && oll1.u[8] === 'y', 'oll-parity-1 diagram: 1 yellow dedge on top (the left one)');
+  check([0, 3, 12, 15].every((i) => oll1.u[i] === 'x') && [5, 6, 9, 10].every((i) => oll1.u[i] === 'y'), 'oll-parity-1 diagram (mask eo): corners hidden, centers yellow');
+  check(oll1.f.slice(1, 3).every((c) => c === 'y') && oll1.r.slice(1, 3).every((c) => c === 'y') && oll1.b.slice(1, 3).every((c) => c === 'y') && oll1.l.slice(1, 3).every((c) => c === 'x'), 'oll-parity-1 diagram: yellow on the side of the three flipped dedges, none on the left one');
   const opp = v('pll-opposite');
   check(rep(opp.u) === 'yyyyyyyyyyyyyyyy' && eq(opp.f, ['g', 'b', 'b', 'g']) && eq(opp.b, ['b', 'g', 'g', 'b']) && eq(opp.r, ['o', 'o', 'o', 'o']) && eq(opp.l, ['r', 'r', 'r', 'r']), 'pll-opposite view: front and back edge pairs show the opposite color');
   const adj = v('pll-adjacent');
@@ -421,6 +439,183 @@ function checkCase(c, st, label, steps) {
   const cor = v('pll-corners');
   check(rep(cor.u) === 'yyyyyyyyyyyyyyyy' && eq(cor.f, ['o', 'g', 'g', 'r']) && eq(cor.l, ['r', 'r', 'r', 'g']) && eq(cor.r, ['o', 'o', 'o', 'g']) && eq(cor.b, ['b', 'b', 'b', 'b']), 'pll-corners view: two front corners exchanged, headlights at the back');
   P.CASES.forEach((c) => check(eq(P.caseView(c.id), Cube4.lastLayerView(Cube4.applyAlg(Y(), c.setup), c.mask)), c.id + ': caseView = lastLayerView(setup, mask)'));
+})();
+
+// ------------------------------------------------------------------------------------------
+// 7b. The two OLL parity variants: 3 yellow dedges on top (one flipped) and 1 yellow dedge on top (three flipped).
+//     Every recipe is run on the engine AND on the independent reference simulator (set REF4_PATH to use another copy).
+// ------------------------------------------------------------------------------------------
+(function () {
+  const OLL = P.ALGS.OLL_PARITY, LINE = P.ALGS.EO_LINE;
+  const SLOT = ['UF', 'UR', 'UB', 'UL'];
+  const flags = (st) => P.analyze(st).edges.map((e) => (e.oriented ? 1 : 0)).join('');
+  const crossDone = (st) => P.PREDICATES('crossDone', st);
+  // flip the dedge that is at the front when the cube is turned y^k (a pure flip of that one dedge: verified in section 2)
+  const flipSlot = (st, k) => Cube4.applyAlg(st, ['', 'y', 'y2', "y'"][k] + ' ' + OLL + ' ' + ['', "y'", 'y2', 'y'][k]);
+  // which slot (0 UF, 1 UR, 2 UB, 3 UL) the flip of y^k hits, found on the solved cube
+  const slotOfFlip = [0, 1, 2, 3].map((k) => flags(flipSlot(Y(), k)).indexOf('0'));
+  check(eq(slotOfFlip.slice().sort(), [0, 1, 2, 3]), 'the four y rotations flip the four different dedges (' + slotOfFlip.join(',') + ')');
+
+  // ---- the line algorithm is the Trainer one, with no r/f/M, so it is the same on a 4x4 ----
+  check(LINE === A3('eo-line') && LINE === A4('eo-line') && !P.trainerAlg('eo-line').changed, "EO_LINE is the Trainer's eo-line, unchanged on a 4x4");
+  check(!/[rludfbMxyz]/.test(LINE), 'EO_LINE has only outer face turns');
+
+  // ---- predicates and the counting function ----
+  check(P.yellowDedgesOnTop(Y()) === 4 && P.yellowDedgesOnTop(P.caseState('oll-parity')) === 3 && P.yellowDedgesOnTop(P.caseState('oll-parity-1')) === 1, 'yellowDedgesOnTop: 4 solved, 3 and 1 in the two variants');
+  check(P.yellowDedgesOnTop(Cube4.applyAlg(Y(), '2R')) === null, 'yellowDedgesOnTop is null when the dedges are not all paired');
+  check(P.PREDICATES('oneYellowOnTop', P.caseState('oll-parity-1')) && !P.PREDICATES('threeYellowOnTop', P.caseState('oll-parity-1')), 'oneYellowOnTop / threeYellowOnTop on the 1-yellow case');
+  check(P.PREDICATES('threeYellowOnTop', P.caseState('oll-parity')) && !P.PREDICATES('oneYellowOnTop', P.caseState('oll-parity')), 'oneYellowOnTop / threeYellowOnTop on the 3-yellow case');
+  check(!P.PREDICATES('oneYellowOnTop', Y()) && !P.PREDICATES('threeYellowOnTop', Y()), 'neither predicate holds on a solved cube');
+
+  // ---- the setup of oll-parity-1 against a facelet-level construction written independently of any algorithm ----
+  // a flipped dedge = each wing swaps its top sticker with its side sticker
+  const EDGE_WINGS = { UF: [[13, 'F', 1], [14, 'F', 2]], UR: [[11, 'R', 1], [7, 'R', 2]], UB: [[2, 'B', 1], [1, 'B', 2]], UL: [[4, 'L', 1], [8, 'L', 2]] };
+  const flipByHand = (st, names) => {
+    const o = {}; FACES.forEach((f) => { o[f] = st[f].slice(); });
+    names.forEach((n) => EDGE_WINGS[n].forEach((w) => { const t = o.U[w[0]]; o.U[w[0]] = o[w[1]][w[2]]; o[w[1]][w[2]] = t; }));
+    return o;
+  };
+  const photo = flipByHand(Y(), ['UF', 'UR', 'UB']);
+  check(flags(photo) === '0001', 'by hand: UF, UR and UB flipped leaves only the left dedge yellow on top');
+  check(eq(photo, P.caseState('oll-parity-1')), 'oll-parity-1 setup = the by-hand state "only the left dedge yellow" (engine)');
+  check(eq(refApply(P.caseById('oll-parity-1').setup), photo), 'oll-parity-1 setup = the by-hand state (reference simulator)');
+  check(eq(flipByHand(Y(), ['UF']), P.caseState('oll-parity')), 'oll-parity setup = the by-hand state "one dedge flipped"');
+  check(P.classify(photo) === 'oll-parity-1' && [0, 1, 2, 3].every((k) => P.classify(rotY(photo, k)) === 'oll-parity-1'), 'the photographed pattern is classified as oll-parity-1 from every y orientation');
+  // the photo: the left dedge is the yellow one, held as in the photo (no turn). The recipe turns the cube so it is at the back.
+  check(eq(P.holds(photo, 'singleYellowBack'), [1]), 'photo: one y turn puts the left yellow dedge at the back');
+  check(P.PREDICATES('flippedEdgeFront', P.caseState('oll-parity')) && !P.PREDICATES('flippedEdgeFront', photo), 'flippedEdgeFront is the 3-yellow hold only');
+
+  // ---- the recipe, run on the engine and on the reference simulator from the photographed state and every start orientation ----
+  const c1 = P.caseById('oll-parity-1'), c3 = P.caseById('oll-parity');
+  [0, 1, 2, 3].forEach((k) => {
+    checkCase(c1, rotY(photo, k), 'photo, start y^' + k);
+    checkCase(c3, rotY(P.caseState('oll-parity'), k), 'one dedge flipped, start y^' + k);
+  });
+  check(c1.done === 'crossDone' && c3.done === 'crossDone', 'both variants end in a complete cross');
+  const hold1 = P.holds(photo, 'singleYellowBack')[0];
+  const heldSeq = (k) => ['', 'y', 'y2', "y'"][k];
+  ['U', "U'"].forEach((turn) => {
+    const seq = heldSeq(hold1) + ' ' + OLL + ' ' + turn + ' ' + LINE;
+    const eng = Cube4.applyAlg(photo, seq);
+    check(crossDone(eng), 'photo: ' + turn + ' version ends with the cross complete (engine)');
+    const ref = T4.refToFaces(T4.ref.apply(T4.ref.apply(refY(), expand3(c1.setup)), expand3(seq)));
+    check(eq(ref, eng) && crossDone(ref), 'photo: ' + turn + ' version, reference simulator agrees with the engine and ends with the cross complete');
+    // the steps in between, on the reference simulator
+    const ref1 = T4.refToFaces(T4.ref.apply(T4.ref.apply(refY(), expand3(c1.setup)), expand3(heldSeq(hold1) + ' ' + OLL)));
+    check(P.PREDICATES('lineFrontBack', ref1), 'photo: after the OLL parity algorithm the yellow dedges are front and back (reference)');
+    check(P.PREDICATES('lineHorizontal', T4.refToFaces(T4.ref.apply(T4.ref.apply(refY(), expand3(c1.setup)), expand3(heldSeq(hold1) + ' ' + OLL + ' ' + turn)))), 'photo: ' + turn + ' makes the line horizontal (reference)');
+  });
+  // the full recipe never changes the centers or the first three layers
+  const fin = Cube4.applyAlg(photo, heldSeq(hold1) + ' ' + OLL + ' U ' + LINE);
+  check(FACES.every((f) => [5, 6, 9, 10].every((i) => rotY(fin, (4 - hold1) % 4)[f][i] === Y()[f][i])), 'photo: centers are where they were after the recipe');
+  const finBack = rotY(fin, (4 - hold1) % 4);
+  check(['F', 'R', 'B', 'L'].every((f) => [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].every((i) => finBack[f][i] === Y()[f][i])) && finBack.D.every((c, i) => c === Y().D[i]), 'photo: everything below the top layer is where it was after the recipe');
+
+  // ---- negative checks: the texts say "do not hold it anywhere else" and "the quarter turn is needed" ----
+  [0, 1, 2, 3].filter((k) => k !== hold1).forEach((k) => {
+    const after = Cube4.applyAlg(rotY(photo, k), OLL);
+    check(!P.PREDICATES('lineFrontBack', after) && !P.PREDICATES('lineHorizontal', after) && !crossDone(after), 'hold y^' + k + ' (yellow dedge not at the back): the OLL parity algorithm does not give a line');
+    check(!crossDone(Cube4.applyAlg(Cube4.applyAlg(after, 'U'), LINE)), 'hold y^' + k + ' followed by U and the line algorithm does not complete the cross');
+  });
+  const afterOll = Cube4.applyAlg(rotY(photo, hold1), OLL);
+  check(!crossDone(Cube4.applyAlg(afterOll, LINE)), 'without the quarter turn the line algorithm does not complete the cross (vertical line)');
+  check(!P.PREDICATES('lineHorizontal', Cube4.applyAlg(afterOll, 'U2')) && !crossDone(Cube4.applyAlg(Cube4.applyAlg(afterOll, 'U2'), LINE)), 'a half turn instead of the quarter turn does not work');
+  check(!crossDone(Cube4.applyAlg(rotY(photo, hold1), LINE)), 'the line algorithm alone does not complete a 1-yellow cross');
+
+  // ---- arbitrary corners (and edge permutation) on top: the cross recipe must not depend on them ----
+  // EO-preserving scrambles: inverses of the 3x3 last-layer algorithms (their 4x4 forms), random AUFs between them
+  const rnd = T4.mulberry32(20261123);
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const LL = ['ocll-sune', 'ocll-antisune', 'ocll-h', 'ocll-pi', 'ocll-u', 'ocll-t', 'ocll-l', 'cp-adj', 'cp-diag', 'ep-ua', 'ep-ub', 'ep-h', 'ep-z'];
+  const AUFS = ['', 'U', "U'", 'U2'];
+  let runs = 0, cornerStates = new Set(), edgePerms = new Set(), refRuns = 0;
+  for (let n = 0; n < 150; n++) {
+    let scr = Y(), text = '';
+    const len = 1 + Math.floor(rnd() * 3);
+    for (let i = 0; i < len; i++) { const a = pick(AUFS) + ' ' + (rnd() < 0.5 ? A4(pick(LL)) : Cube4.invertAlg(A4(pick(LL)))); text += ' ' + a; scr = Cube4.applyAlg(scr, a); }
+    const lastAuf = pick(AUFS);
+    text += ' ' + lastAuf;
+    scr = Cube4.applyAlg(scr, lastAuf);
+    check(flags(scr) === '1111' && P.analyze(scr).edges.every((e) => e.paired), 'scramble ' + n + ': all dedges yellow on top and paired');
+    cornerStates.add(P.analyze(scr).corners.map((c) => c.home + ':' + (c.oriented ? 1 : 0)).join(' '));
+    edgePerms.add(P.analyze(scr).edges.map((e) => e.home).join(''));
+    // make the 1-yellow state: flip three of the four dedges (the yellow one is at a random place)
+    const keep = Math.floor(rnd() * 4);
+    let st = scr, flips = '';
+    [0, 1, 2, 3].filter((k) => slotOfFlip[k] !== keep).forEach((k) => { st = flipSlot(st, k); flips += ' ' + heldSeq(k) + ' ' + OLL + ' ' + heldSeq((4 - k) % 4); });
+    check(flags(st) === [0, 1, 2, 3].map((q) => (q === keep ? 1 : 0)).join('') && P.classify(st) === 'oll-parity-1', 'random corners ' + n + ': a 1-yellow state, yellow dedge at ' + SLOT[keep]);
+    // the recipe with each start orientation, both quarter turns
+    [0, 1, 2, 3].forEach((k0) => {
+      const s0 = rotY(st, k0), ks = P.holds(s0, 'singleYellowBack');
+      check(ks.length === 1, 'random corners ' + n + ' y^' + k0 + ': exactly one hold (single yellow at the back)');
+      ['U', "U'"].forEach((turn) => {
+        const seq = heldSeq(ks[0]) + ' ' + OLL + ' ' + turn + ' ' + LINE;
+        const e1 = Cube4.applyAlg(s0, heldSeq(ks[0]) + ' ' + OLL);
+        check(P.PREDICATES('lineFrontBack', e1), 'random corners ' + n + ': a line front-back after the OLL parity algorithm');
+        const e2 = Cube4.applyAlg(e1, turn);
+        check(P.PREDICATES('lineHorizontal', e2), 'random corners ' + n + ': horizontal line after ' + turn);
+        const e3 = Cube4.applyAlg(e2, LINE);
+        check(crossDone(e3), 'random corners ' + n + ' y^' + k0 + ' ' + turn + ': yellow cross complete');
+        runs++;
+        if (n % 10 === 0 && k0 === 0) { // the reference simulator replays the whole thing from the solved cube
+          const full = text + flips + ' ' + seq;
+          const r = T4.refToFaces(T4.ref.apply(refY(), expand3(full)));
+          // the reference applies the same moves from the solved cube: here the rotation k0 is applied as a whole-cube y turn
+          const eng = Cube4.applyAlg(Y(), full);
+          check(eq(r, eng) && crossDone(r), 'random corners ' + n + ' ' + turn + ': reference simulator agrees and the cross is complete');
+          refRuns++;
+        }
+      });
+    });
+  }
+  check(runs === 150 * 4 * 2, 'random-corner recipe runs (' + runs + ')');
+  check(cornerStates.size > 40 && edgePerms.size > 4, 'the scrambles give many different corner states and edge permutations (' + cornerStates.size + ', ' + edgePerms.size + ')');
+  check(refRuns >= 15, 'reference simulator replays (' + refRuns + ')');
+
+  // ---- classify: 1 and 3 yellow dedges on top, and nothing else, from every y turn and with arbitrary corners ----
+  for (let n = 0; n < 40; n++) {
+    let scr = Y();
+    for (let i = 0; i < 2; i++) scr = Cube4.applyAlg(scr, pick(AUFS) + ' ' + A4(pick(LL)));
+    const byCount = {};
+    for (let mask = 0; mask < 16; mask++) {
+      let st = scr;
+      for (let k = 0; k < 4; k++) if (mask & (1 << k)) st = flipSlot(st, k);
+      const flipped = [0, 1, 2, 3].filter((k) => mask & (1 << k)).length;
+      // with 0, 2 or 4 flips the state can still be a PLL case (arbitrary last layer): it is just never an OLL parity
+      [0, 1, 2, 3].forEach((r) => {
+        const got = P.classify(rotY(st, r));
+        if (flipped === 1) check(got === 'oll-parity', 'classify with 3 yellow dedges on top: oll-parity (got ' + got + ')');
+        else if (flipped === 3) check(got === 'oll-parity-1', 'classify with 1 yellow dedge on top: oll-parity-1 (got ' + got + ')');
+        else check(got !== 'oll-parity' && got !== 'oll-parity-1', 'classify with ' + (4 - flipped) + ' yellow dedges on top: not an OLL parity (got ' + got + ')');
+      });
+      byCount[flipped] = (byCount[flipped] || 0) + 1;
+    }
+    if (n === 0) check(eq(byCount, { 0: 1, 1: 4, 2: 6, 3: 4, 4: 1 }), 'all 16 flip patterns visited');
+  }
+
+  // ---- the Practice sequence of the Trainer: OLL parity + U + line algorithm, from the 1-yellow state with any AUF ----
+  const seqP = OLL + ' U ' + LINE;
+  AUFS.forEach((auf) => {
+    const st = Cube4.applyAlg(Cube4.applyAlg(Y(), Cube4.invertAlg(seqP)), auf);
+    check(P.classify(st) === 'oll-parity-1', 'practice 1-yellow sequence, AUF "' + auf + '": the setup is a 1-yellow state');
+    const ks = P.holds(st, 'singleYellowBack');
+    check(ks.length === 1, 'practice 1-yellow, AUF "' + auf + '": one hold');
+    const out = Cube4.applyAlg(rotY(st, ks[0]), seqP);
+    check(crossDone(out), 'practice 1-yellow, AUF "' + auf + '": sequence completes the cross');
+    check(eq(T4.refToFaces(T4.ref.apply(T4.ref.apply(refY(), expand3(Cube4.invertAlg(seqP) + ' ' + auf + ' ' + heldSeq(ks[0]))), expand3(seqP))), out), 'practice 1-yellow, AUF "' + auf + '": reference simulator agrees');
+  });
+  check(Cube4.isSolved(Cube4.applyAlg(Cube4.applyAlg(Y(), Cube4.invertAlg(seqP)), seqP)), 'the practice sequence undoes its own inverse');
+
+  // ---- the 3-yellow variant with arbitrary corners (the old context test covers the 3x3 states; this one uses the new hold) ----
+  for (let n = 0; n < 60; n++) {
+    let scr = Y();
+    for (let i = 0; i < 2; i++) scr = Cube4.applyAlg(scr, pick(AUFS) + ' ' + A4(pick(LL)));
+    const k = Math.floor(rnd() * 4), st = flipSlot(scr, k);
+    check(P.classify(st) === 'oll-parity', '3-yellow random ' + n + ': classified');
+    const ks = P.holds(st, 'flippedEdgeFront');
+    check(ks.length === 1, '3-yellow random ' + n + ': one hold with the flipped dedge in front');
+    check(crossDone(Cube4.applyAlg(rotY(st, ks[0]), OLL)), '3-yellow random ' + n + ': the algorithm completes the cross');
+  }
 })();
 
 // ------------------------------------------------------------------------------------------

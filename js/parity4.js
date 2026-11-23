@@ -21,6 +21,9 @@
     PLL_PARITY: '2R2 U2 2R2 Uw2 2R2 Uw2',
     // The T-perm of the app (js/algs.js 'cp-adj'), used by the corner cases.
     TPERM: "R U R' U' R' F R2 U' R' U' R U R' F'",
+    // The 3x3 line algorithm of the Trainer (js/algs.js 'eo-line'). Only face turns, so it is the same on a 4x4.
+    // Turns a horizontal line (yellow dedges on the left and right) into the full yellow cross.
+    EO_LINE: "F R U R' U' F'",
   };
 
   // ---- Notation entries: one structured check each, {move, face, expect}, where expect is the on-screen
@@ -156,6 +159,23 @@
 
   function hasHeadlights(st, face) { return st[face][0] === st[face][3]; }
 
+  // Orientation of the four top dedges in slot order UF, UR, UB, UL (true = yellow on top), or null when some
+  // dedge is not a paired last-layer dedge.
+  function edgeFlags(st) {
+    var a = analyze(st).edges;
+    return a.every(function (e) { return e.paired && e.home >= 0; }) ? a.map(function (e) { return e.oriented; }) : null;
+  }
+  // number of dedges that show yellow on top (null when the dedges are not all paired)
+  function yellowDedgesOnTop(st) {
+    var f = edgeFlags(st);
+    return f ? f.filter(Boolean).length : null;
+  }
+  // exactly the dedges of the listed slots (0 UF, 1 UR, 2 UB, 3 UL) show yellow on top
+  function onlyYellowAt(st, slots) {
+    var f = edgeFlags(st);
+    return !!f && f.every(function (o, k) { return o === (slots.indexOf(k) >= 0); });
+  }
+
   // ---- Predicates: "when" ids used by the recipes. All are evaluated on the cube as it is held. ----
   var PRED = {
     // exactly the front-top dedge is flipped (yellow on the side), the other three oriented
@@ -169,6 +189,15 @@
       var a = analyze(st).edges[0];
       return a.paired && !a.oriented;
     },
+    // the yellow cross step with 1 (resp. 3) yellow dedges on top: the two variants of the OLL parity
+    oneYellowOnTop: function (st) { return yellowDedgesOnTop(st) === 1; },
+    threeYellowOnTop: function (st) { return yellowDedgesOnTop(st) === 3; },
+    // the only dedge that shows yellow on top is the one at the back (the front one is then flipped)
+    singleYellowBack: function (st) { return onlyYellowAt(st, [2]); },
+    // exactly two opposite dedges show yellow on top: front and back (a vertical line seen from above) ...
+    lineFrontBack: function (st) { return onlyYellowAt(st, [0, 2]); },
+    // ... or left and right (a horizontal line, the one the 3x3 line algorithm F R U R' U' F' needs)
+    lineHorizontal: function (st) { return onlyYellowAt(st, [1, 3]); },
     // preconditions of the PLL cases: corners (resp. edges) all solved against the centers
     cornersSolved: function (st) { return isSolvedLayer(analyze(st).corners); },
     edgesSolved: function (st) { return isSolvedLayer(analyze(st).edges); },
@@ -215,17 +244,36 @@
   //        {do:'then3x3', set, algs}      continue with the normal 3x3 step `set` using js/algs.js ids `algs`
   //                                       (set 'EPany': any one of the listed algs, from the right hold, then AUF).
   //                                       Always run the 4x4 form: Parity4.to4x4(alg).
+  //        done: what the recipe ends in ('solved' = the whole cube, 'crossDone' = a complete yellow cross; the
+  //        corners can still be anything). Default 'solved'.
+  var OCLL_IDS = ['ocll-sune', 'ocll-antisune', 'ocll-h', 'ocll-pi', 'ocll-u', 'ocll-t', 'ocll-l'];
   var CASES = [
     {
-      id: 'oll-parity', step: 'oll', mask: 'oll',
-      // one flipped dedge: the yellow cross has 3 yellow edges (or 1) instead of 2 or 4
+      id: 'oll-parity', step: 'oll', mask: 'oll', done: 'crossDone',
+      // 3 yellow dedges on top: one dedge is flipped. Flipping it back completes the yellow cross.
       setup: ALGS.OLL_PARITY,
       pre: [],
-      // hold a flipped edge in front (works for 1 flipped edge, and for 3: then 2 stay flipped = a normal line/L/dot)
       steps: [
-        { do: 'hold', when: 'frontEdgeFlipped' },
+        { do: 'hold', when: 'flippedEdgeFront' },
         { do: 'alg', alg: ALGS.OLL_PARITY, after: 'crossDone' },
-        { do: 'then3x3', set: 'OCLL', algs: ['ocll-sune', 'ocll-antisune', 'ocll-h', 'ocll-pi', 'ocll-u', 'ocll-t', 'ocll-l'] },
+        { do: 'then3x3', set: 'OCLL', algs: OCLL_IDS },
+      ],
+    },
+    {
+      id: 'oll-parity-1', step: 'oll', mask: 'eo', done: 'crossDone',
+      // only 1 yellow dedge on top (here the left one, as in a photo of a real cube): the other three are flipped.
+      // Three OLL parity algorithms, each seen from a different side, flip UF, UR and UB.
+      setup: ALGS.OLL_PARITY + ' y ' + ALGS.OLL_PARITY + ' y ' + ALGS.OLL_PARITY + ' y2',
+      pre: [],
+      steps: [
+        // the yellow dedge at the back: the front dedge is then flipped, and flipping it gives a front-back line
+        { do: 'hold', when: 'singleYellowBack' },
+        { do: 'alg', alg: ALGS.OLL_PARITY, after: 'lineFrontBack' },
+        // a quarter turn of the top layer makes the line horizontal; U and U' both work (verified)
+        { do: 'alg', alg: 'U', alt: "U'", after: 'lineHorizontal' },
+        // the 3x3 line algorithm (Trainer id eo-line) completes the cross whatever the corners are
+        { do: 'alg', alg: ALGS.EO_LINE, after: 'crossDone' },
+        { do: 'then3x3', set: 'OCLL', algs: OCLL_IDS },
       ],
     },
     {
@@ -305,6 +353,11 @@
     return null;
   }
   function caseById(id) { return CASES.filter(function (c) { return c.id === id; })[0] || null; }
+  // did the recipe of case c end where it promises (c.done)? A complete cross, or a solved cube
+  function recipeDone(c, state) {
+    if (typeof c === 'string') c = caseById(c);
+    return c.done === 'crossDone' ? PRED.crossDone(state) : Cube4.isSolved(state);
+  }
   function caseState(id) { return Cube4.applyAlg(Cube4.solved('yellowTop'), caseById(id).setup); }
 
   // Name the parity case of a yellow-top state (any y orientation), or null.
@@ -312,8 +365,10 @@
     var a = analyze(state);
     var eCy = cycles(a.edges), cCy = cycles(a.corners);
     if (a.edges.every(function (e) { return e.paired && e.home >= 0; })) {
-      var flipped = a.edges.filter(function (e) { return !e.oriented; }).length;
-      if (flipped % 2 === 1) return 'oll-parity';
+      // 3 yellow dedges on top (1 flipped) or 1 yellow dedge on top (3 flipped): both are an odd number of flips
+      var yellow = a.edges.filter(function (e) { return e.oriented; }).length;
+      if (yellow === 3) return 'oll-parity';
+      if (yellow === 1) return 'oll-parity-1';
     }
     if (!eCy || !cCy || !allOriented(a.edges) || !allOriented(a.corners)) return null;
     var es = onlySwap(a.edges), cs = onlySwap(a.corners);
@@ -338,6 +393,8 @@
     rotateY: rotateY,
     aufSolve: aufSolve,
     caseById: caseById,
+    recipeDone: recipeDone,
+    yellowDedgesOnTop: yellowDedgesOnTop,
     caseState: caseState,
     // diagram data of a case with its mask, as the view shows it
     caseView: function (id) {

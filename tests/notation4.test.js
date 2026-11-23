@@ -238,7 +238,7 @@ function wellFormed(s) {
       else check(sc < 0, l + ': ' + c.id + ' has no shortcut block');
       // the big block is the parity algorithm of the case
       const big = (card.match(/data-alg="([^"]*)"/) || [])[1];
-      check(big === (c.id === 'oll-parity' ? P.ALGS.OLL_PARITY : P.ALGS.PLL_PARITY), l + ': ' + c.id + ' big block is the parity algorithm');
+      check(big === (c.step === 'oll' ? P.ALGS.OLL_PARITY : P.ALGS.PLL_PARITY), l + ': ' + c.id + ' big block is the parity algorithm');
       // number of steps = number of walked recipe steps
       check((mainPart.match(/<li class="n4-step"/g) || []).length === N4.stepsFor(c.id, 'steps').length, l + ': ' + c.id + ' step count');
     });
@@ -253,7 +253,9 @@ function wellFormed(s) {
     if (w === 'shortcut' && !c.shortcut) return;
     const items = N4.stepsFor(c.id, w);
     const last = items[items.length - 1].state;
-    check(Cube4.isSolved(last), c.id + ' ' + w + ': the walked recipe ends solved');
+    check(P.recipeDone(c, last), c.id + ' ' + w + ': the walked recipe ends where its data says (' + (c.done || 'solved') + ')');
+    check(c.done === 'crossDone' ? P.PREDICATES('crossDone', last) : Cube4.isSolved(last), c.id + ' ' + w + ': ends solved, or with a complete cross when the recipe says so');
+    if (c.id === 'oll-parity') check(Cube4.isSolved(last), 'oll-parity: with the other pieces solved the recipe also ends solved');
     check(items.every((it) => it.state && it.state.U && it.state.U.length === 16), c.id + ' ' + w + ': every step carries its state');
     check(items[0].kind === 'hold' || items[0].kind === '3x3', c.id + ' ' + w + ': starts with a hold or the normal 3x3 step');
   }));
@@ -283,7 +285,9 @@ function wellFormed(s) {
   check(flipped(line) === 2 && flipped(L) === 2, 'both start with two flipped dedges');
   [Cube4.applyAlg(Y(), P.ALGS.OLL_PARITY), Cube4.applyAlg(line, P.ALGS.OLL_PARITY), Cube4.applyAlg(L, P.ALGS.OLL_PARITY)].forEach((st, i) => {
     const ks2 = P.holds(st, 'frontEdgeFlipped');
-    check(flipped(st) % 2 === 1 && ks2.length > 0 && P.classify(st) === 'oll-parity', 'odd state ' + i + ' (' + flipped(st) + ' flipped) is recognized as OLL parity');
+    // 1 flipped = 3 yellow dedges on top; 3 flipped = 1 yellow dedge on top
+    const want = flipped(st) === 1 ? 'oll-parity' : 'oll-parity-1';
+    check(flipped(st) % 2 === 1 && ks2.length > 0 && P.classify(st) === want, 'odd state ' + i + ' (' + flipped(st) + ' flipped) is recognized as ' + want);
     ks2.forEach((k) => {
       const after = Cube4.applyAlg(P.rotateY(st, k), P.ALGS.OLL_PARITY);
       check(flipped(after) === flipped(st) - 1 && flipped(after) % 2 === 0, 'odd state ' + i + ' hold y^' + k + ': ' + flipped(st) + ' flipped -> ' + flipped(after));
@@ -376,9 +380,9 @@ function wellFormed(s) {
     check(!/same algorithms|mismos algoritmos/i.test(html) && !/con los mismos|with the same algorithms/i.test(html), l + ': no claim that the 3x3 algorithms work unchanged');
     // 3Rw and 3Fw have cards in the notation part
     check(html.indexOf('data-move="3Rw"') >= 0 && html.indexOf('data-move="3Fw"') >= 0, l + ': notation cards for 3Rw and 3Fw');
-    // the OLL parity card lists the 4x4 forms of the L shape and the dot, and the OCLL step those of T and L
+    // both OLL parity cards end in the complete cross, so only the OCLL step lists 4x4 forms (T and L); no L-shape / dot forms any more
+    ['oll-parity', 'oll-parity-1'].forEach((id) => check(eq(alg4s(cardOf(html, id)), [P.trainerAlg('ocll-t').alg4, P.trainerAlg('ocll-l').alg4]), l + ': ' + id + ' card: 4x4 forms of ocll-t, ocll-l only'));
     const oll = cardOf(html, 'oll-parity');
-    check(eq(alg4s(oll), [P.trainerAlg('eo-l').alg4, P.trainerAlg('eo-dot').alg4, P.trainerAlg('ocll-t').alg4, P.trainerAlg('ocll-l').alg4]), l + ': oll-parity card: 4x4 forms of eo-l, eo-dot, ocll-t, ocll-l');
     check(oll.indexOf('data-step-alg="' + P.ALGS.OLL_PARITY + '"') >= 0, l + ': oll-parity card still shows the parity algorithm in its steps');
     // no data-step-alg / data-alg4 / data-alg anywhere has an ambiguous token or M
     const all = (html.match(/data-(?:step-)?alg4?="[^"]*"/g) || []).map((a) => a.replace(/^[^"]*"|"$/g, ''));
@@ -401,12 +405,100 @@ function wellFormed(s) {
     check(/1 (or|o) 3/.test(T('n4.c.oll-parity.rec')) && !/one dedge is flipped|una arista doble está volteada/.test(T('n4.c.oll-parity.rec')), l + ': oll-parity recognition says an odd number (1 or 3)');
     // every 4x4 text key used for the new parts exists in both languages
     ['n4.tr.title', 'n4.tr.lead', 'n4.tr.map.r', 'n4.tr.map.f', 'n4.tr.map.M', 'n4.tr.same', 'n4.step.hold.anyHold', 'n4.step.3x3.EPany', 'n4.c.pll-cycle.title', 'n4.c.pll-cycle.rec', 'n4.par.which.pll-cycle',
-      'n4.kind.wide3.title', 'n4.kind.wide3.text', 'n4.m.3Rw.name', 'n4.m.3Rw.x', 'n4.m.3Fw.x2', 'n4.step.3x3.OCLL.alg4', 'n4.c.oll-parity.alg4'].forEach((k) => check(!!N4.STRINGS.en[k] && !!N4.STRINGS.es[k], 'text ' + k));
+      'n4.kind.wide3.title', 'n4.kind.wide3.text', 'n4.m.3Rw.name', 'n4.m.3Rw.x', 'n4.m.3Fw.x2', 'n4.step.3x3.OCLL.alg4'].forEach((k) => check(!!N4.STRINGS.en[k] && !!N4.STRINGS.es[k], 'text ' + k));
   });
   // the page text that tells the user about r/f/M also says it in the flow list and the intro
   check(/3Rw|r, f or M/.test(N4.STRINGS.en['n4.flow.2']) && /r, f o M/.test(N4.STRINGS.es['n4.flow.2']), 'flow step 2 warns about r, f and M in both languages');
   // pll-cycle: texts and data agree on what happens (one run explored per hold is in parity.test.js)
   check(P.classify(P.caseState('pll-cycle')) === 'pll-cycle', 'pll-cycle case state is classified as pll-cycle');
+})();
+
+// ---------------------------------------------------------------------------------------------
+// 7b. The two OLL parity variants (1 and 3 yellow dedges on top): cards, diagrams, steps, texts, in both languages
+// ---------------------------------------------------------------------------------------------
+(function () {
+  const cardOf = (html, id) => {
+    const i = html.indexOf('<article class="card n4-case" data-case="' + id + '">');
+    return i < 0 ? '' : html.slice(i, html.indexOf('</article>', i));
+  };
+  const attrOf = (card, a) => (card.match(new RegExp('data-' + a + '="[^"]*"', 'g')) || []).map((x) => x.replace(/^[^"]*"|"$/g, ''));
+  const WINGS = [1, 2, 4, 7, 8, 11, 13, 14];
+  const yellowDedges = (view) => WINGS.filter((i) => view.u[i] === 'y').length / 2;
+  const OLL = P.ALGS.OLL_PARITY, LINE = P.ALGS.EO_LINE;
+  const esc = (x) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  check(!!P.caseById('oll-parity') && !!P.caseById('oll-parity-1') && P.CASES.filter((c) => c.step === 'oll').length === 2, 'two OLL parity cases in the data');
+
+  // steps of the new recipe, as the page walks them
+  const items = N4.stepsFor('oll-parity-1', 'steps');
+  check(items.map((it) => it.kind).join() === 'hold,alg,alg,alg,3x3', 'oll-parity-1 steps: hold, OLL parity, quarter turn, line algorithm, step 2 pointer');
+  check(items[0].when === 'singleYellowBack' && items[1].alg === OLL && items[2].alg === 'U' && items[2].alt === "U'" && items[3].alg === LINE, 'oll-parity-1 steps carry the verified algorithms (U with U\' as the alternative)');
+  check(items.every((it) => it.state && it.state.U.length === 16), 'every step carries its state');
+  check(P.PREDICATES('singleYellowBack', items[0].state) && P.PREDICATES('lineFrontBack', items[1].state) && P.PREDICATES('lineHorizontal', items[2].state) && P.PREDICATES('crossDone', items[3].state), 'step states: yellow dedge at the back, vertical line, horizontal line, cross complete');
+  check(Cube4.isSolved(N4.stepsFor('oll-parity', 'steps').slice(-1)[0].state) === true && N4.stepsFor('oll-parity', 'steps').map((it) => it.kind).join() === 'hold,alg,3x3', 'oll-parity steps: hold, OLL parity, step 2 pointer');
+  check(N4.stepsFor('oll-parity', 'steps')[0].when === 'flippedEdgeFront', 'oll-parity hold: the flipped dedge in front');
+  // each step state is what the engine gives
+  let st = P.caseState('oll-parity-1');
+  st = P.rotateY(st, P.holds(st, 'singleYellowBack')[0]);
+  check(eq(items[0].state, st), 'step 1 state = the case state held with the yellow dedge at the back');
+  st = Cube4.applyAlg(st, OLL); check(eq(items[1].state, st), 'step 2 state = after the OLL parity algorithm');
+  st = Cube4.applyAlg(st, 'U'); check(eq(items[2].state, st), 'step 3 state = after U');
+  st = Cube4.applyAlg(st, LINE); check(eq(items[3].state, st), 'step 4 state = after the line algorithm');
+
+  ['en', 'es'].forEach((l) => {
+    const html = N4.build(l), T = (k) => N4.STRINGS[l][k];
+    const c3 = cardOf(html, 'oll-parity'), c1 = cardOf(html, 'oll-parity-1');
+    check(c3.length > 0 && c1.length > 0, l + ': both OLL parity cards exist');
+    // titles say how many yellow dedges are on top
+    const t3 = T('n4.c.oll-parity.title'), t1 = T('n4.c.oll-parity-1.title');
+    if (l === 'en') check(/3 yellow dedges on top/.test(t3) && /1 yellow dedge on top/.test(t1), 'en: titles name 3 and 1 yellow dedges on top');
+    else check(/3 aristas dobles amarillas arriba/.test(t3) && /solo 1 arista doble amarilla arriba/.test(t1), 'es: titles name 3 y solo 1 arista doble amarilla arriba');
+    check(c3.indexOf(esc(t3)) >= 0 && c1.indexOf(esc(t1)) >= 0, l + ': each card shows its title');
+    // the "Which case do I have?" list names both
+    const which = html.slice(html.indexOf('class="card n4-which"'), html.indexOf('</section>', html.indexOf('class="card n4-which"')));
+    check(which.indexOf(esc(t3)) >= 0 && which.indexOf(esc(t1)) >= 0 && which.indexOf(esc(T('n4.par.which.oll-parity'))) >= 0 && which.indexOf(esc(T('n4.par.which.oll-parity-1'))) >= 0, l + ': the which-case list names both variants');
+    check(/3 yellow dedges on top|3 aristas dobles amarillas arriba/.test(T('n4.par.which.oll-parity')) && /only 1 yellow dedge on top|solo 1 arista doble amarilla arriba/.test(T('n4.par.which.oll-parity-1')), l + ': which-case texts say 3 / only 1');
+    // shared heading and lead, once, before the two cards
+    check(html.split(esc(T('n4.par.oll.title'))).length === 2 && html.indexOf(esc(T('n4.par.oll.title'))) < html.indexOf('data-case="oll-parity"'), l + ': one heading before the two OLL parity cards');
+    check(/1 (or|o) 3/.test(T('n4.par.oll.lead')), l + ': the heading text says 1 or 3');
+    // top-view diagram of each case: the one the data produces, with 3 / 1 yellow dedges
+    const caseSvg = (c) => (c.match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+    const want3 = Cube3D.topSvg(Cube4.lastLayerView(P.caseState('oll-parity'), 'oll'), 4, { colors: Cube4.COLORS, size: 150, title: T('n4.alt.case') });
+    const want1 = Cube3D.topSvg(Cube4.lastLayerView(P.caseState('oll-parity-1'), 'eo'), 4, { colors: Cube4.COLORS, size: 150, title: T('n4.alt.case') });
+    check(caseSvg(c3) === want3 && caseSvg(c1) === want1, l + ': the case diagrams are the top views of the two case states');
+    check(yellowDedges(Cube4.lastLayerView(P.caseState('oll-parity'), 'oll')) === 3 && yellowDedges(Cube4.lastLayerView(P.caseState('oll-parity-1'), 'eo')) === 1, l + ': diagrams show 3 and 1 yellow dedges');
+    check(want3 !== want1, l + ': the two diagrams differ');
+    // the big block of the 1-yellow card says it is only the first part; the 3-yellow card keeps the plain label
+    check(c1.indexOf('<span class="n4-label">' + esc(T('n4.label.alg.part')) + '</span>') >= 0 && c3.indexOf('<span class="n4-label">' + esc(T('n4.label.alg')) + '</span>') >= 0 && T('n4.label.alg.part') !== T('n4.label.alg.part'.replace('.part', '')), l + ': the 1-yellow big block is labeled as only the first part');
+    // caption of the 1-yellow diagram explains the hidden corners
+    check(c1.indexOf(esc(T('n4.cap.eo'))) >= 0 && c3.indexOf(esc(T('n4.cap.oll'))) >= 0, l + ': captions');
+    // numbered steps, each with its own diagram, generated from the data
+    const stepsOf = (c) => (c.match(/<li class="n4-step"[\s\S]*?<\/figure><\/li>/g) || []);
+    check(stepsOf(c1).length === 5 && stepsOf(c3).length === 3, l + ': 5 steps for 1 yellow, 3 for 3 yellow');
+    stepsOf(c1).concat(stepsOf(c3)).forEach((li, i) => check((li.match(/<svg/g) || []).length === 1 && /class="n4-step-fig"/.test(li), l + ': step ' + i + ' has a diagram'));
+    check(eq(attrOf(c1, 'step-alg'), [OLL, 'U', LINE]) && eq(attrOf(c1, 'step-alg-alt'), ["U'"]), l + ': the 1-yellow steps show OLL parity, U (or U\') and the line algorithm');
+    check(eq(attrOf(c3, 'step-alg'), [OLL]) && attrOf(c3, 'step-alg-alt').length === 0, l + ': the 3-yellow steps show the OLL parity algorithm only');
+    check(c1.indexOf('class="n4-or"') >= 0 && c1.indexOf('>' + esc(T('n4.or')) + '<') >= 0, l + ': the U / U\' alternative is shown with "' + T('n4.or') + '"');
+    // each step diagram is the engine state after that step
+    const stepFig = (i) => (stepsOf(c1)[i].match(/<svg[\s\S]*?<\/svg>/) || [''])[0];
+    items.forEach((it, i) => check(stepFig(i) === Cube3D.topSvg(Cube4.lastLayerView(it.state, 'eo'), 4, { colors: Cube4.COLORS, size: 96, title: T('n4.alt.step').replace('{n}', String(i + 1)) }), l + ': 1-yellow step ' + (i + 1) + ' diagram is the engine state'));
+    // the texts of the steps
+    ['n4.step.hold.singleYellowBack', 'n4.step.alg.oll.1', 'n4.step.alg.quarter', 'n4.step.alg.line'].forEach((k) => check(c1.indexOf(esc(T(k))) >= 0, l + ': 1-yellow card shows ' + k));
+    check(c3.indexOf(esc(T('n4.step.hold.flippedEdgeFront'))) >= 0 && c3.indexOf(esc(T('n4.step.alg.oll'))) >= 0, l + ': 3-yellow card shows its hold and algorithm texts');
+    check(c1.indexOf(esc(T('n4.c.oll-parity-1.rec'))) >= 0 && c1.indexOf(esc(T('n4.c.oll-parity-1.note'))) >= 0 && c3.indexOf(esc(T('n4.c.oll-parity.rec'))) >= 0 && c3.indexOf(esc(T('n4.c.oll-parity.note'))) >= 0, l + ': recognition and note texts of both cards');
+    // the texts speak about the same cube the data builds
+    check(/back|atrás/.test(T('n4.step.hold.singleYellowBack')) && /front|delante/.test(T('n4.step.hold.singleYellowBack')), l + ': the hold text names the back and the front');
+    check(/line|línea/.test(T('n4.step.alg.oll.1')) && /(either|cualquiera)/i.test(T('n4.step.alg.quarter')), l + ': texts mention the line and that either turn works');
+  });
+  // every algorithm step of every recipe has its text in both languages (including the OLL parity variant)
+  P.CASES.forEach((c) => c.steps.concat(c.shortcut || []).forEach((s) => {
+    if (s.do !== 'alg') return;
+    ['en', 'es'].forEach((l) => {
+      const keys = N4.STRINGS[l];
+      const algKey = s.alg === P.ALGS.OLL_PARITY ? 'oll' : s.alg === P.ALGS.PLL_PARITY ? 'pll' : s.alg === 'U2' ? 'u2' : s.alg === 'U' ? 'quarter' : s.alg === P.ALGS.EO_LINE ? 'line' : null;
+      check(algKey !== null && ('n4.step.alg.' + algKey) in keys, l + ': text for the algorithm step ' + s.alg);
+    });
+  }));
+  check('n4.step.alg.oll.1' in N4.STRINGS.en && 'n4.step.alg.oll.1' in N4.STRINGS.es && 'n4.or' in N4.STRINGS.en && 'n4.or' in N4.STRINGS.es && 'n4.cap.eo' in N4.STRINGS.en && 'n4.cap.eo' in N4.STRINGS.es, 'new keys exist in both languages');
 })();
 
 // ---------------------------------------------------------------------------------------------

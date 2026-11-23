@@ -112,12 +112,15 @@
       'n4.par.title': 'The two parity cases',
       'n4.par.lead': 'Both appear in the last layer and neither can happen on a 3x3. The recipes assume you solve the last layer with the four steps of the Trainer. The algorithms are written with inner slices (2R, 2L) and Uw, never with r.',
       'n4.par.which.title': 'Which case do I have?',
-      'n4.par.which.oll-parity': 'Yellow cross step: 1 or 3 yellow dedges on top.',
+      'n4.par.which.oll-parity': 'Yellow cross step: 3 yellow dedges on top (the fourth one shows yellow on its side).',
+      'n4.par.which.oll-parity-1': 'Yellow cross step: only 1 yellow dedge on top (the other three show yellow on their sides).',
       'n4.par.which.pll-opposite': 'Corners placed, two opposite dedges swapped, the other two correct.',
       'n4.par.which.pll-adjacent': 'Corners placed, two neighboring dedges swapped, the other two correct.',
       'n4.par.which.pll-corners': 'All edges correct, two neighboring corners swapped.',
       'n4.par.which.pll-cycle': 'Corners placed, the dedges out of place in a way that is not a Ua, Ub, H or Z and not a single swap (for example all four in a cycle).',
       'n4.par.limit': 'If, with the corners placed, your dedges match a Ua, Ub, H or Z, solve them as the Trainer says (with the 4x4 versions of H and Z). Any other odd arrangement is covered by the last card. A diagonal swap of two corners with all the edges solved is not covered here.',
+      'n4.par.oll.title': 'OLL parity in the yellow cross step: two variants',
+      'n4.par.oll.lead': 'In the yellow cross step, with the edges already paired, an odd number of yellow dedges on top is OLL parity: 1 or 3. Count them first and use the card that matches. Both use the same OLL parity algorithm, but the 1-yellow card turns the cube a different way and finishes with the line algorithm.',
 
       'n4.tr.title': 'Trainer algorithms on a 4x4',
       'n4.tr.lead': 'The 3x3 Trainer algorithms are written for a 3x3, where a lowercase r or f also turns the middle layer and M is the middle slice. On a 4x4 the middle is made of two inner slices, so six of the sixteen algorithms (the ones with r, f or M) break the centers and unpair dedges if you do them as written. The Trainer in 4x4 mode already shows them rewritten. To rewrite one yourself, replace the moves like this and it does exactly what it does on a 3x3:',
@@ -129,20 +132,24 @@
       'n4.tr.four': 'On a 4x4:',
       'n4.label.recognize': 'How to recognize it',
       'n4.label.alg': 'Algorithm',
+      'n4.label.alg.part': 'Parity algorithm (only the first part: follow the numbered steps below)',
       'n4.label.steps': 'Steps',
       'n4.label.shortcut': 'Shortcut',
       'n4.alg.note.oll': 'In this algorithm 2R and 2L are only the inner slice (see the cards above). Do not replace them with r or Rw: the same sequence with two-layer moves also disturbs the corners.',
       'n4.alg.note.pll': 'In this algorithm 2R is only the inner slice and Uw is the two top layers (see the cards above). Do not replace 2R with r or Rw: the two-layer version breaks the middle layers.',
       'n4.cap.oll': 'The case seen from above. Gray stickers are not yellow. The bottom edge of the diagram is the side facing you.',
       'n4.cap.pll': 'The case seen from above. The bottom edge of the diagram is the side facing you.',
+      'n4.cap.eo': 'The case seen from above. Gray stickers are not yellow. The corners are hidden because they do not matter here. The bottom edge of the diagram is the side facing you.',
       'n4.alt.case': 'Top view of the last layer of this case.',
       'n4.alt.step': 'Top view of the last layer after step {n}.',
       'n4.tag.oll': 'OLL', 'n4.tag.pll': 'PLL',
 
-      'n4.c.oll-parity.title': 'OLL parity: one flipped dedge',
-      'n4.c.oll-parity.rec': 'In step 1 of the Trainer (yellow cross), with the edges already paired, count the dedges that show yellow on top. On a 3x3 it is always 0, 2 or 4. If you see an odd number (1 or 3), it is OLL parity. Hold any dedge that shows yellow on its side at the front: with 3 yellow dedges on top there is one such dedge, with only 1 there are three and any of them works.',
-      'n4.c.oll-parity.note': 'The algorithm flips the dedge at the front and leaves every other piece where it was. With 3 yellow dedges on top, the yellow cross is now complete. With only 1, two dedges still show yellow on the side: that is a normal line or L, so do step 1 of the Trainer as usual before step 2 (the L shape needs its 4x4 version, listed below).',
-      'n4.c.oll-parity.alg4': '4x4 versions of the step 1 algorithms that use f:',
+      'n4.c.oll-parity.title': 'OLL parity: 3 yellow dedges on top',
+      'n4.c.oll-parity-1.title': 'OLL parity: only 1 yellow dedge on top',
+      'n4.c.oll-parity.rec': 'In step 1 of the Trainer (yellow cross), with the edges already paired, count the dedges that show yellow on top. On a 3x3 it is always 0, 2 or 4. An odd number (1 or 3) is OLL parity. This card is for 3: the fourth dedge is flipped, so it shows yellow on its side. If you see only 1, use the next card.',
+      'n4.c.oll-parity-1.rec': 'In step 1 of the Trainer (yellow cross), with the edges already paired, count the dedges that show yellow on top. If you see only 1 (the other three show yellow on their sides), it is OLL parity too. It looks like a different case, but it is fixed with the same algorithm, then a quarter turn of the top layer, then the line algorithm of step 1. The corners can be in any state: they do not matter here.',
+      'n4.c.oll-parity.note': 'The algorithm flips the dedge at the front and leaves every other piece where it was, so the yellow cross is now complete. Next comes step 2 of the Trainer.',
+      'n4.c.oll-parity-1.note': 'Why it works: with the yellow dedge at the back, the dedge at the front is one of the three flipped ones, and the algorithm flips only that one. Now two opposite dedges show yellow (front and back): a line, as in step 1 of the Trainer. The quarter turn makes the line horizontal, which is how the line algorithm needs it. That algorithm can leave the corners mixed up: that is normal, step 2 and the next steps deal with them. Do not hold the yellow dedge anywhere else: it does not give a line.',
       'n4.c.pll-opposite.title': 'PLL parity: two opposite dedges swapped',
       'n4.c.pll-opposite.rec': 'In step 4 of the Trainer (permute edges), with the corners already placed, two opposite dedges (front and back, or left and right) are in each other\'s place and the other two are correct. No 3x3 case looks like this: Ua and Ub move three edges, H and Z move four.',
       'n4.c.pll-adjacent.title': 'PLL parity: two neighboring dedges swapped',
@@ -155,13 +162,18 @@
       'n4.pre.edgesSolved': 'The recipe assumes every edge already matches its centers.',
 
       'n4.step.hold.anyHold': 'Hold the cube any way you like: this recipe works from any side.',
-      'n4.step.hold.frontEdgeFlipped': 'Hold the cube so that one flipped dedge (yellow on its side) is at the front.',
+      'n4.step.hold.flippedEdgeFront': 'Hold the cube so that the flipped dedge (the one that shows yellow on its side) is at the front.',
+      'n4.step.hold.singleYellowBack': 'Turn the whole cube sideways (y) until the only yellow dedge is at the back, the farthest from you. The dedge at the front, the closest to you, then shows yellow on its front side.',
       'n4.step.hold.swappedEdgesFrontBack': 'Turn the whole cube sideways (y) until the two swapped dedges are at the front and at the back. Either of the two ways works.',
       'n4.step.hold.swappedEdgesFrontRight': 'Turn the whole cube sideways (y) until the two swapped dedges are at the front and on the right.',
       'n4.step.hold.headlightsFrontOrBack': 'Turn the whole cube sideways (y) until the headlights (two corners of the same color on one side) are at the front or at the back. They must not be on the left or right side.',
       'n4.step.hold.headlightsLeft': 'Turn the whole cube sideways (y) until the headlights are on the left face.',
       'n4.step.hold.solvedEdgeBack': 'Hold the cube with the solved edge at the back.',
-      'n4.step.alg.oll': 'Do the OLL parity algorithm. It only flips this dedge.',
+      'n4.step.alg.oll': 'Do the OLL parity algorithm. It only flips this dedge: the yellow cross is complete.',
+      'n4.step.alg.oll.1': 'Do the OLL parity algorithm. It only flips the dedge at the front, so now two dedges show yellow on top: the front one and the back one (a line).',
+      'n4.step.alg.quarter': 'Turn the top layer a quarter turn so that the line goes from left to right (horizontal). Either direction works.',
+      'n4.step.alg.line': 'Do the line algorithm of step 1 of the Trainer. The yellow cross is complete. Some corners may look mixed up: that is expected, step 2 and the next steps deal with them.',
+      'n4.or': 'or',
       'n4.step.alg.pll': 'Do the PLL parity algorithm. Right after it the corners look turned half a turn and the left and right dedges look swapped as well: that is expected. Together with the half turn that follows, it swaps the front and back dedges, which puts them in place.',
       'n4.step.alg.pll.adj': 'Do the PLL parity algorithm. Right after it the corners look turned half a turn and the dedges look more mixed up than before: that is expected. After the half turn that follows, the corners are solved and three dedges are out of place.',
       'n4.step.alg.pll.short': 'Do the PLL parity algorithm. Right after it the corners look turned half a turn and the left and right dedges look swapped: that is expected. The T-perm in the next step fixes the corners and swaps those two dedges back.',
@@ -170,7 +182,7 @@
       'n4.step.auf': 'Turn the top layer to line it up (AUF). Here it is:',
       'n4.step.auf.none': 'The top layer is already lined up: no turn needed.',
       'n4.step.then.pll-opposite': 'The corners are now solved and two opposite dedges are swapped. That is the case "PLL parity: two opposite dedges swapped": continue with its steps.',
-      'n4.step.3x3.OCLL': 'If the yellow cross is complete, continue with step 2 of the Trainer ({setName}), as usual: {names}. The ones that use r need their 4x4 version, listed below; the others work as they are. If two edges are still flipped (a line or an L), do step 1 first.',
+      'n4.step.3x3.OCLL': 'The yellow cross is complete: continue with step 2 of the Trainer ({setName}), as usual: {names}. The ones that use r need their 4x4 version, listed below; the others work as they are.',
       'n4.step.3x3.OCLL.alg4': '4x4 versions:',
       'n4.step.3x3.EPany': 'This is now a normal step 4 of the Trainer ({setName}): the corners are solved and the dedges are in one of its cases. In this example it is the {name}; yours can also be a Ua, Ub, H or Z (H and Z need their 4x4 version, see the card "Trainer algorithms on a 4x4").',
       'n4.step.3x3.CP': 'Do the normal corner step of the Trainer ({setName}): {name}.',
@@ -309,12 +321,15 @@
       'n4.par.title': 'Los dos casos de paridad',
       'n4.par.lead': 'Los dos aparecen en la última capa y ninguno puede pasar en un 3x3. Las recetas suponen que resuelves la última capa con los cuatro pasos del Entrenador. Los algoritmos están escritos con capas interiores (2R, 2L) y Uw, nunca con r.',
       'n4.par.which.title': '¿Qué caso tengo?',
-      'n4.par.which.oll-parity': 'Paso de la cruz amarilla: 1 o 3 aristas dobles amarillas arriba.',
+      'n4.par.which.oll-parity': 'Paso de la cruz amarilla: 3 aristas dobles amarillas arriba (la cuarta muestra amarillo de lado).',
+      'n4.par.which.oll-parity-1': 'Paso de la cruz amarilla: solo 1 arista doble amarilla arriba (las otras tres muestran amarillo de lado).',
       'n4.par.which.pll-opposite': 'Esquinas colocadas, dos aristas dobles opuestas intercambiadas y las otras dos bien.',
       'n4.par.which.pll-adjacent': 'Esquinas colocadas, dos aristas dobles vecinas intercambiadas y las otras dos bien.',
       'n4.par.which.pll-corners': 'Todas las aristas bien, dos esquinas vecinas intercambiadas.',
       'n4.par.which.pll-cycle': 'Esquinas colocadas, aristas dobles mal colocadas de una forma que no es una Ua, Ub, H o Z ni un solo intercambio (por ejemplo las cuatro en un ciclo).',
       'n4.par.limit': 'Si, con las esquinas colocadas, tus aristas dobles coinciden con una Ua, Ub, H o Z, resuélvelas como dice el Entrenador (con las versiones de 4x4 de la H y la Z). Cualquier otra disposición impar la cubre la última tarjeta. Un intercambio en diagonal de dos esquinas con todas las aristas resueltas no está cubierto aquí.',
+      'n4.par.oll.title': 'Paridad de OLL en el paso de la cruz amarilla: dos variantes',
+      'n4.par.oll.lead': 'En el paso de la cruz amarilla, con las aristas ya emparejadas, un número impar de aristas dobles amarillas arriba es paridad de OLL: 1 o 3. Cuéntalas primero y usa la tarjeta que coincida. Las dos usan el mismo algoritmo de paridad de OLL, pero la de 1 arista amarilla gira el cubo de otra manera y termina con el algoritmo de la línea.',
 
       'n4.tr.title': 'Algoritmos del Entrenador en un 4x4',
       'n4.tr.lead': 'Los algoritmos del Entrenador del 3x3 están escritos para un 3x3, donde una r o f minúscula también gira la capa del medio y M es el corte del medio. En un 4x4 el medio son dos capas interiores, así que seis de los dieciséis algoritmos (los que llevan r, f o M) rompen los centros y desemparejan aristas dobles si los haces tal como están escritos. El Entrenador en modo 4x4 ya los muestra reescritos. Para reescribir uno tú mismo, cambia los movimientos así y hace exactamente lo mismo que en un 3x3:',
@@ -326,20 +341,24 @@
       'n4.tr.four': 'En un 4x4:',
       'n4.label.recognize': 'Cómo reconocerlo',
       'n4.label.alg': 'Algoritmo',
+      'n4.label.alg.part': 'Algoritmo de paridad (solo la primera parte: sigue los pasos numerados de abajo)',
       'n4.label.steps': 'Pasos',
       'n4.label.shortcut': 'Atajo',
       'n4.alg.note.oll': 'En este algoritmo 2R y 2L son solo la capa interior (mira las tarjetas de arriba). No los cambies por r ni por Rw: la misma secuencia con movimientos de dos capas también desordena las esquinas.',
       'n4.alg.note.pll': 'En este algoritmo 2R es solo la capa interior y Uw son las dos capas de arriba (mira las tarjetas de arriba). No cambies 2R por r ni por Rw: la versión de dos capas rompe las capas del medio.',
       'n4.cap.oll': 'El caso visto desde arriba. Las piezas grises no son amarillas. El borde de abajo del diagrama es el lado que te mira.',
       'n4.cap.pll': 'El caso visto desde arriba. El borde de abajo del diagrama es el lado que te mira.',
+      'n4.cap.eo': 'El caso visto desde arriba. Las piezas grises no son amarillas. Las esquinas están ocultas porque aquí no importan. El borde de abajo del diagrama es el lado que te mira.',
       'n4.alt.case': 'Vista desde arriba de la última capa de este caso.',
       'n4.alt.step': 'Vista desde arriba de la última capa después del paso {n}.',
       'n4.tag.oll': 'OLL', 'n4.tag.pll': 'PLL',
 
-      'n4.c.oll-parity.title': 'Paridad de OLL: una arista doble volteada',
-      'n4.c.oll-parity.rec': 'En el paso 1 del Entrenador (cruz amarilla), con las aristas ya emparejadas, cuenta las aristas dobles que muestran amarillo arriba. En un 3x3 son siempre 0, 2 o 4. Si ves un número impar (1 o 3), es paridad de OLL. Pon delante cualquier arista doble que muestre amarillo de lado: con 3 aristas dobles amarillas arriba hay una así; con solo 1 hay tres y sirve cualquiera.',
-      'n4.c.oll-parity.note': 'El algoritmo voltea la arista doble de delante y deja todas las demás piezas donde estaban. Con 3 aristas dobles amarillas arriba, la cruz amarilla queda completa. Con solo 1, dos aristas dobles siguen mostrando amarillo de lado: es una línea o una L normal, así que haz el paso 1 del Entrenador como siempre antes del paso 2 (la forma de L necesita su versión de 4x4, en la lista de abajo).',
-      'n4.c.oll-parity.alg4': 'Versiones de 4x4 de los algoritmos del paso 1 que llevan f:',
+      'n4.c.oll-parity.title': 'Paridad de OLL: 3 aristas dobles amarillas arriba',
+      'n4.c.oll-parity-1.title': 'Paridad de OLL: solo 1 arista doble amarilla arriba',
+      'n4.c.oll-parity.rec': 'En el paso 1 del Entrenador (cruz amarilla), con las aristas ya emparejadas, cuenta las aristas dobles que muestran amarillo arriba. En un 3x3 son siempre 0, 2 o 4. Un número impar (1 o 3) es paridad de OLL. Esta tarjeta es para 3: la cuarta arista doble está volteada, así que muestra amarillo de lado. Si ves solo 1, usa la tarjeta siguiente.',
+      'n4.c.oll-parity-1.rec': 'En el paso 1 del Entrenador (cruz amarilla), con las aristas ya emparejadas, cuenta las aristas dobles que muestran amarillo arriba. Si ves solo 1 (las otras tres muestran amarillo de lado), también es paridad de OLL. Parece otro caso, pero se arregla con el mismo algoritmo, un cuarto de vuelta de la capa de arriba y el algoritmo de la línea del paso 1. Las esquinas pueden estar de cualquier manera: aquí no importan.',
+      'n4.c.oll-parity.note': 'El algoritmo voltea la arista doble de delante y deja todas las demás piezas donde estaban, así que la cruz amarilla queda completa. Sigue el paso 2 del Entrenador.',
+      'n4.c.oll-parity-1.note': 'Por qué funciona: con la arista doble amarilla atrás, la de delante es una de las tres volteadas y el algoritmo voltea solo esa. Ahora dos aristas dobles opuestas muestran amarillo (delante y atrás): una línea, como en el paso 1 del Entrenador. El cuarto de vuelta deja la línea horizontal, que es como la necesita el algoritmo de la línea. Ese algoritmo puede dejar las esquinas desordenadas: es normal, el paso 2 y los siguientes se ocupan de ellas. No sostengas la arista doble amarilla en otro sitio: no da una línea.',
       'n4.c.pll-opposite.title': 'Paridad de PLL: dos aristas dobles opuestas intercambiadas',
       'n4.c.pll-opposite.rec': 'En el paso 4 del Entrenador (permutar aristas), con las esquinas ya colocadas, dos aristas dobles opuestas (delante y atrás, o izquierda y derecha) están cada una en el sitio de la otra y las otras dos están bien. Ningún caso del 3x3 se ve así: la Ua y la Ub mueven tres aristas y la H y la Z mueven cuatro.',
       'n4.c.pll-adjacent.title': 'Paridad de PLL: dos aristas dobles vecinas intercambiadas',
@@ -352,13 +371,18 @@
       'n4.pre.edgesSolved': 'La receta supone que todas las aristas ya coinciden con sus centros.',
 
       'n4.step.hold.anyHold': 'Sostén el cubo como quieras: esta receta funciona desde cualquier lado.',
-      'n4.step.hold.frontEdgeFlipped': 'Sostén el cubo con una arista doble volteada (amarillo de lado) delante.',
+      'n4.step.hold.flippedEdgeFront': 'Sostén el cubo de modo que la arista doble volteada (la que muestra amarillo de lado) quede delante.',
+      'n4.step.hold.singleYellowBack': 'Gira el cubo entero hacia un lado (y) hasta que la única arista doble amarilla quede atrás, la más lejana a ti. La arista doble de delante, la más cercana, muestra entonces amarillo en su cara frontal.',
       'n4.step.hold.swappedEdgesFrontBack': 'Gira el cubo entero hacia un lado (rotación «y») hasta que las dos aristas dobles intercambiadas queden delante y atrás. Sirve cualquiera de las dos formas.',
       'n4.step.hold.swappedEdgesFrontRight': 'Gira el cubo entero hacia un lado (rotación «y») hasta que las dos aristas dobles intercambiadas queden delante y a la derecha.',
       'n4.step.hold.headlightsFrontOrBack': 'Gira el cubo entero hacia un lado (rotación «y») hasta que los faros (dos esquinas del mismo color en un lado) queden delante o atrás. No deben quedar a la izquierda ni a la derecha.',
       'n4.step.hold.headlightsLeft': 'Gira el cubo entero hacia un lado (rotación «y») hasta que los faros queden en la cara izquierda.',
       'n4.step.hold.solvedEdgeBack': 'Sostén el cubo con la arista resuelta atrás.',
-      'n4.step.alg.oll': 'Haz el algoritmo de paridad de OLL. Solo voltea esta arista doble.',
+      'n4.step.alg.oll': 'Haz el algoritmo de paridad de OLL. Solo voltea esta arista doble: la cruz amarilla queda completa.',
+      'n4.step.alg.oll.1': 'Haz el algoritmo de paridad de OLL. Solo voltea la arista doble de delante, así que ahora dos aristas dobles muestran amarillo arriba: la de delante y la de atrás (una línea).',
+      'n4.step.alg.quarter': 'Gira la capa de arriba un cuarto de vuelta para que la línea vaya de izquierda a derecha (horizontal). Sirve cualquiera de los dos sentidos.',
+      'n4.step.alg.line': 'Haz el algoritmo de la línea del paso 1 del Entrenador. La cruz amarilla queda completa. Algunas esquinas pueden verse desordenadas: es lo esperado, el paso 2 y los siguientes se ocupan de ellas.',
+      'n4.or': 'o',
       'n4.step.alg.pll': 'Haz el algoritmo de paridad de PLL. Justo después las esquinas parecen giradas media vuelta y las aristas dobles de la izquierda y la derecha parecen intercambiadas también: es lo esperado. Junto con la media vuelta que viene a continuación, intercambia las aristas dobles de delante y de atrás, y las deja en su sitio.',
       'n4.step.alg.pll.adj': 'Haz el algoritmo de paridad de PLL. Justo después las esquinas parecen giradas media vuelta y las aristas dobles parecen más desordenadas que antes: es lo esperado. Tras la media vuelta que viene a continuación, las esquinas quedan resueltas y tres aristas dobles fuera de sitio.',
       'n4.step.alg.pll.short': 'Haz el algoritmo de paridad de PLL. Justo después las esquinas parecen giradas media vuelta y las aristas dobles de la izquierda y la derecha parecen intercambiadas: es lo esperado. La T-perm del paso siguiente arregla las esquinas y devuelve esas dos aristas dobles a su sitio.',
@@ -367,7 +391,7 @@
       'n4.step.auf': 'Gira la capa de arriba para alinearla (AUF). Aquí es:',
       'n4.step.auf.none': 'La capa de arriba ya está alineada: no hace falta girar.',
       'n4.step.then.pll-opposite': 'Ahora las esquinas están resueltas y hay dos aristas dobles opuestas intercambiadas. Es el caso «Paridad de PLL: dos aristas dobles opuestas intercambiadas»: sigue sus pasos.',
-      'n4.step.3x3.OCLL': 'Si la cruz amarilla está completa, sigue con el paso 2 del Entrenador ({setName}), como siempre: {names}. Los que llevan r necesitan su versión de 4x4, en la lista de abajo; los demás funcionan tal cual. Si aún quedan dos aristas volteadas (una línea o una L), haz primero el paso 1.',
+      'n4.step.3x3.OCLL': 'La cruz amarilla está completa: sigue con el paso 2 del Entrenador ({setName}), como siempre: {names}. Los que llevan r necesitan su versión de 4x4, en la lista de abajo; los demás funcionan tal cual.',
       'n4.step.3x3.OCLL.alg4': 'Versiones de 4x4:',
       'n4.step.3x3.EPany': 'Ahora es un paso 4 normal del Entrenador ({setName}): las esquinas están resueltas y las aristas dobles están en uno de sus casos. En este ejemplo es la {name}; la tuya también puede ser una Ua, Ub, H o Z (la H y la Z necesitan su versión de 4x4, mira la tarjeta «Algoritmos del Entrenador en un 4x4»).',
       'n4.step.3x3.CP': 'Haz el paso normal de esquinas del Entrenador ({setName}): {name}.',
@@ -490,6 +514,8 @@
   ALG_KEY[P.ALGS.OLL_PARITY] = 'oll';
   ALG_KEY[P.ALGS.PLL_PARITY] = 'pll';
   ALG_KEY.U2 = 'u2';
+  ALG_KEY.U = 'quarter';
+  ALG_KEY[P.ALGS.EO_LINE] = 'line';
 
   // Paso EP de la app (sin predicado de agarre): escoge el giro y (0..3) y el algoritmo de la lista con los que el estado se
   // resuelve (con o sin AUF final). La Ua y la Ub piden la arista resuelta atras. -> {k, id, back} o null
@@ -520,7 +546,7 @@
       } else if (s.do === 'alg') {
         state = Cube4.applyAlg(state, s.alg);
         if (!ALG_KEY[s.alg]) throw new Error('No text for algorithm ' + s.alg);
-        out.push({ kind: 'alg', alg: s.alg, key: ALG_KEY[s.alg], state: state });
+        out.push({ kind: 'alg', alg: s.alg, alt: s.alt || null, key: ALG_KEY[s.alg], state: state });
       } else if (s.do === 'auf') {
         a = P.aufSolve(state);
         if (a === null) throw new Error('AUF does not solve');
@@ -555,7 +581,7 @@
   function stepsFor(id, which) {
     var c = P.caseById(id), out = [];
     var end = walk(which === 'shortcut' ? c.shortcut : c.steps, P.caseState(id), out);
-    if (!Cube4.isSolved(end)) { // the recipe ends with an AUF that its data leaves implicit (the T-perm of the shortcut)
+    if (!P.recipeDone(c, end)) { // the recipe ends with an AUF that its data leaves implicit (the T-perm of the shortcut)
       var a = P.aufSolve(end);
       if (a === null) throw new Error('Recipe of ' + id + ' does not end solved');
       out.push({ kind: 'auf', alg: a, state: Cube4.applyAlg(end, a) });
@@ -585,13 +611,23 @@
     return 'n4.step.alg.pll';
   }
 
+  // text key of an algorithm step; the OLL parity algorithm reads differently in the 1-yellow recipe
+  function algTextKey(it, ctx) {
+    if (it.key === 'pll') return pllKey(ctx);
+    if (it.key === 'oll' && ctx.id === 'oll-parity-1') return 'n4.step.alg.oll.1';
+    return 'n4.step.alg.' + it.key;
+  }
+
   function stepHtml(it, n, mask, lang, ctx) {
     var T = function (k, p) { return t(k, p, lang); };
     var body = '', setName;
     if (it.kind === 'hold') {
       body = '<p>' + esc(T('n4.step.hold.' + it.when)) + '</p>';
     } else if (it.kind === 'alg') {
-      body = '<p>' + esc(T(it.key === 'pll' ? pllKey(ctx) : 'n4.step.alg.' + it.key)) + '</p>' + algHtml(it.alg);
+      body = '<p>' + esc(T(algTextKey(it, ctx))) + '</p>' + (it.alt
+        // two equivalent turns (checked in the tests): side by side, the second one in its own attribute
+        ? '<div class="n4-orrow">' + algHtml(it.alg) + '<span class="n4-or">' + esc(T('n4.or')) + '</span>' + algHtml(it.alt, 'step-alg-alt') + '</div>'
+        : algHtml(it.alg));
     } else if (it.kind === 'auf') {
       body = it.alg ? '<p>' + esc(T('n4.step.auf')) + '</p>' + algHtml(it.alg, 'auf') : '<p>' + esc(T('n4.step.auf.none')) + '</p>';
     } else if (it.kind === 'then') {
@@ -631,13 +667,10 @@
       '<p><b>' + esc(T('n4.label.recognize')) + '.</b> ' + esc(T('n4.c.' + c.id + '.rec')) + '</p>';
     (c.pre || []).forEach(function (p) { h += '<p class="n4-pre">' + esc(T('n4.pre.' + p)) + '</p>'; });
     h += '</div></div>';
-    h += '<div class="n4-algbox"><span class="n4-label">' + esc(T('n4.label.alg')) + '</span>' +
+    h += '<div class="n4-algbox"><span class="n4-label">' + esc(T(c.id === 'oll-parity-1' ? 'n4.label.alg.part' : 'n4.label.alg')) + '</span>' +
       '<code class="n4-big" data-alg="' + esc(parity.alg) + '">' + esc(parity.alg) + '</code>' +
       '<p class="n4-algnote">' + esc(T('n4.alg.note.' + c.step)) + '</p></div>';
-    if (c.id === 'oll-parity') {
-      h += '<div class="nt-callout n4-note" role="note"><p>' + esc(T('n4.c.oll-parity.note')) + '</p><p class="n4-sub">' +
-        esc(T('n4.c.oll-parity.alg4')) + '</p>' + alg4List(['eo-l', 'eo-dot'], lang) + '</div>';
-    }
+    if (c.step === 'oll') h += '<div class="nt-callout n4-note" role="note"><p>' + esc(T('n4.c.' + c.id + '.note')) + '</p></div>';
     h += '<h5 class="n4-label">' + esc(T('n4.label.steps')) + '</h5>' + stepList(main, c.mask, lang, { id: c.id, which: 'steps' });
     if (c.shortcut) {
       h += '<details class="n4-shortcut"><summary>' + esc(T('n4.label.shortcut')) + '</summary><p>' + esc(T('n4.shortcut.text')) + '</p>' +
@@ -771,7 +804,14 @@
         P.CASES.map(function (c) {
           return '<li><b>' + esc(T('n4.c.' + c.id + '.title')) + '.</b> ' + esc(T('n4.par.which.' + c.id)) + '</li>';
         }).join('') + '</ul><p class="nt-note">' + esc(T('n4.par.limit')) + '</p></section>';
-      P.CASES.forEach(function (c) { h += caseCard(c, lang); });
+      var seenOll = false;
+      P.CASES.forEach(function (c) {
+        if (c.step === 'oll' && !seenOll) { // both OLL parity cards share one heading
+          seenOll = true;
+          h += '<h4 class="n4-group">' + esc(T('n4.par.oll.title')) + '</h4><p class="nt-lead">' + esc(T('n4.par.oll.lead')) + '</p>';
+        }
+        h += caseCard(c, lang);
+      });
       return h;
     });
   }

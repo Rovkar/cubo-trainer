@@ -73,7 +73,8 @@
     if (c.note) h += '<p class="tip">' + esc(c.note) + '</p>';
     if (!c.alg) {
       h += '<p class="muted small">' + esc(t('t4.learnOnly.note')) + '</p>' +
-        '<div><button class="btn small-btn" data-act="notation">' + esc(t('t4.openNotation')) + '</button></div>';
+        '<div><button class="btn small-btn" data-act="notation" data-target="' + esc((root.Trainer4 && root.Trainer4.notationCase(c.id)) || '') + '">' +
+        esc(t('t4.openNotation')) + '</button></div>';
     }
     return h;
   }
@@ -245,7 +246,12 @@
         mode = b.dataset.mode;
         if (mode === 'practice' && !cur) nextCase();
         render();
-      } else if (b.dataset.act === 'notation') { if (root.App && root.App.showTab) root.App.showTab('notation'); }
+      } else if (b.dataset.act === 'notation') {
+        if (root.App && root.App.showTab) root.App.showTab('notation');
+        // Learn-only 4x4 cards: jump straight to the card with the full steps instead of the top of the tab
+        var target = b.dataset.target && root.document.querySelector('#view-notation [data-case="' + b.dataset.target + '"]');
+        if (target && target.scrollIntoView) target.scrollIntoView();
+      }
       else if (b.dataset.act === 'n4') {
         // switch the whole app to 4x4 (the header switch does the same); onPuzzleChange re-renders this tab
         if (root.Puzzle) root.Puzzle.set('4x4');
