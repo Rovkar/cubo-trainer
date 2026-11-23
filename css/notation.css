@@ -82,6 +82,16 @@ h5.n4-label { margin: 4px 0 0; }
 .n4-trrow { min-width: 0; }
 .n4-trrow .n4-label { margin: 4px 0 2px; }
 .n4-old { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.n4-e2-rec .nt-figs { margin: 4px 0 8px; }
+.n4-e2-rec .nt-fig { flex: 0 1 140px; }
+.n4-setup { list-style: none; margin: 0 0 4px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.n4-setup li { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; min-width: 0; }
+.n4-at { flex: 0 0 auto; font: 800 1rem/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace; color: var(--accent); min-width: 2ch; }
+.n4-setup .n4-alg { flex: 1 1 auto; display: block; min-width: 0; }
+.n4-none { font-size: .88rem; color: var(--muted); }
+.n4-e2-dw { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; }
+.n4-e2-dw .n4-algnote { flex: 1 1 220px; min-width: 0; margin: 0; }
+.n4-dw-fig { flex: 0 1 130px; min-width: 100px; }
 @media (max-width: 480px) {
   .n4-step { flex-wrap: wrap; justify-content: flex-start; }
   .n4-big { font-size: 1.05rem; }

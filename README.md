@@ -44,6 +44,7 @@ The mode is a device preference, like the language: it is remembered in this bro
 For solving a 4x4 by reduction (centers, edge pairing, then the 3x3 steps; six of the 16 Trainer algorithms are rewritten for a 4x4, see below). Switch to **4x4** in the header and open the **Notation** tab. It has:
 
 - **4x4 notation**: outer faces (`U D R L F B`; D, L and B carry the same "looks reversed" explanation as the 3x3 tab), inner slice (`2R`), wide moves (`Rw`, `Uw`, `Fw`: the ones the scrambles use), three-layer wide move (`3Rw`, `3Fw`) and whole-cube rotations (`x`, `y`), each with a before/after diagram whose arrows are computed from the 4x4 engine.
+- **Last two edges (edge pairing)**: when only two edges are left to pair, slice moves cannot join them. The card (before the parity cards, because it belongs to the reduction stage) explains when you need it, how to hold the cube and bring the two unpaired edges to the left and right vertical edges of the front face with outer turns only (a table by place), and how to recognize the case from the four front stickers. Case 1 (halves that belong together side by side): `Dw R F' U R' F Dw'`. Case 2 (crossed): first `R F' U R' F`, then the case 1 algorithm. Each has numbered steps with a front-view diagram after every step. The recipe was checked on all 16 possible arrangements of the two edges (each built from a solved cube), from both holds it allows, and it pairs both edges while the centers stay solved and the other ten pairs stay paired; it was also checked on random cubes with other edges, on a fixed-permutation argument that covers any other cube, and against the independent simulator. It is *not* parity (parity shows up later, in the last layer).
 - **Trainer algorithms on a 4x4**: the Trainer algorithms with `r`, `f` or `M` (T and L orient-corners, L-shape and dot, H and Z) do not work as written on a 4x4: they unpair dedges or use a move that does not exist. The page lists their 4x4 versions (`r` -> `3Rw`, `f` -> `3Fw`, `M` -> `2L 2R'`); each was checked to have exactly the 3x3 effect on a reduced cube. The other 10 work as they are.
 - **The two last-layer parity cases**: OLL parity (an odd number, 1 or 3, of flipped dedges) and PLL parity (two opposite edges, two adjacent edges, two adjacent corners swapped, or any other odd arrangement such as all four edges in a cycle). Each card has a top-view diagram, how to recognize it in the 4-step flow of the Trainer, how to hold the cube, the algorithm and numbered steps with a small diagram after each one. The algorithms and steps were checked by running them on the engine (and, for the engine, against an independent simulator). A general rule covers every odd edge arrangement (parity algorithm once, a half turn, then the normal step 4); a diagonal corner swap with solved edges is not covered.
 - **Careful with `r`**: many tutorials write `r`/`r2` for the inner slice only, but in this app (3x3 mode) a lowercase `r` means `Rw` (two layers). In the 4x4 section the inner slice is always written `2R` and wide moves `Rw`, never `r`.
@@ -90,6 +91,7 @@ node tests/content.test.js
 node tests/notation.test.js
 node tests/cube4.test.js
 node tests/parity.test.js
+node tests/edges4.test.js
 node tests/notation4.test.js
 node tests/plan4.test.js
 node tests/puzzle.test.js
@@ -104,5 +106,5 @@ node tests/trainer4.test.js
 - `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`, `js/plan4.js`: cube model, 3D cube drawing, algorithms and the 3x3 and 4x4 plan data (all bilingual).
 - `js/notation.js`: the Notation tab (move diagrams computed from the cube engine; it shows the 4x4 section in 4x4 mode).
 - `js/trainer4.js`: the 4x4 version of the Trainer cases (the 16 algorithms rewritten where needed, plus the parity cases).
-- `js/cube4.js`, `js/parity4.js`, `js/notation4.js`: the 4x4 engine, the checked parity algorithms and recipes, and the 4x4 section of the Notation tab.
+- `js/cube4.js`, `js/parity4.js`, `js/edges4.js`, `js/notation4.js`: the 4x4 engine, the checked parity algorithms and recipes, the checked last-two-edges recipe (situations, recognition, setup) and the 4x4 section of the Notation tab.
 - `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistence, statistics, timer, trainer, plan view and startup.

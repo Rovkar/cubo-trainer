@@ -9,6 +9,7 @@ const PLANS4 = require(J('plan4.js'));
 const PLANS3 = require(J('plan.js')); // also defines globalThis.TRAINING_PLAN (getter)
 const Cube4 = require(J('cube4.js'));
 const P = require(J('parity4.js'));
+const E2 = require(J('edges4.js'));
 
 let passed = 0, failed = 0;
 function check(cond, msg) {
@@ -93,7 +94,7 @@ const en = PLANS4.en, es = PLANS4.es;
     plan.tips.forEach(grab);
     return out;
   };
-  const verified = [P.ALGS.OLL_PARITY, P.ALGS.PLL_PARITY].concat(P.TRAINER.map((x) => x.alg4));
+  const verified = [P.ALGS.OLL_PARITY, P.ALGS.PLL_PARITY, E2.ALGS.SWAP, E2.ALGS.FLIP].concat(P.TRAINER.map((x) => x.alg4));
   // single letters that are explained as 3x3 notation (the rewrite rule and the warning), never as a 4x4 move to execute
   const EXPLAINED = ['r', 'f', 'M'];
   ['en', 'es'].forEach((l) => {
@@ -113,10 +114,14 @@ const en = PLANS4.en, es = PLANS4.es;
     });
     // the algorithms of the app really are in the text, exactly as in Parity4
     check(list.indexOf(P.ALGS.OLL_PARITY) >= 0 && list.indexOf(P.ALGS.PLL_PARITY) >= 0, l + ': OLL parity and PLL parity algorithms are shown');
+    check(list.indexOf(E2.ALGS.SWAP) >= 0 && list.indexOf(E2.ALGS.FLIP) >= 0, l + ': phase 2 shows the verified last-two-edges algorithms (js/edges4.js)');
     check(list.indexOf("2L 2R'") >= 0 && list.indexOf('3Rw') >= 0 && list.indexOf('3Fw') >= 0, l + ": the rewrite rule r -> 3Rw, f -> 3Fw, M -> 2L 2R' is shown");
     check(P.to4x4('r') === '3Rw' && P.to4x4('f') === '3Fw' && P.to4x4('M') === "2L 2R'", l + ': the rule agrees with Parity4.to4x4');
   });
   check(eq(codes(en), codes(es)), 'the <code> snippets are identical in en and es, in the same order');
+  // phase 2 no longer says the last-two-edges algorithm is missing: it points to the card and shows the algorithm
+  check(!/not included/i.test(JSON.stringify(en.phases[2])) && !/no incluye/i.test(JSON.stringify(es.phases[2])), 'phase 2 no longer says the last-two-edges algorithm is not included');
+  check(/Last two edges/.test(JSON.stringify(en.phases[2])) && /Las dos últimas aristas/.test(JSON.stringify(es.phases[2])), 'phase 2 points to the Last two edges card');
   // what the plan says the algorithms do, on the engine
   const solved = Cube4.solved('yellowTop');
   check(P.classify(Cube4.applyAlg(solved, P.ALGS.OLL_PARITY)) === 'oll-parity', 'OLL parity algorithm of the plan creates exactly the OLL parity state');

@@ -2,14 +2,15 @@
   'use strict';
 
   // Seccion 4x4 de la pestana Notacion: notacion de 4x4 (cara exterior, capa interior, movimiento ancho,
-  // rotaciones) y las dos paridades de la ultima capa (OLL y PLL). Todo el contenido sale de los datos
-  // verificados de js/parity4.js (algoritmos, pasos, condiciones de agarre) y del motor js/cube4.js:
+  // rotaciones), las dos ultimas aristas de la reduccion (js/edges4.js) y las dos paridades de la ultima capa (OLL y PLL).
+  // Todo el contenido sale de los datos verificados de js/parity4.js y js/edges4.js (algoritmos, pasos, condiciones de agarre) y del motor js/cube4.js:
   // aqui solo hay textos y maquetacion; ningun algoritmo se escribe a mano.
   var isNode = typeof module !== 'undefined' && module.exports;
   var Cube4 = isNode ? require('./cube4.js') : root.Cube4;
   var Cube3D = isNode ? require('./cube3d.js') : root.Cube3D;
   var P = isNode ? require('./parity4.js') : root.Parity4;
   var ALGS3 = isNode ? require('./algs.js') : root.ALGS;
+  var E2 = isNode ? require('./edges4.js') : root.Edges4;
 
   var SCHEME = 'yellowTop'; // amarillo arriba, verde al frente: igual que las posiciones del Entrenador
   var GROUPS = ['outer', 'inner', 'wide', 'wide3', 'rotation'];
@@ -22,7 +23,7 @@
       'n4.title': 'Solving a 4x4: notation and parity',
       'n4.lead': 'On a 4x4 you solve by reduction: first the centers, then you pair up the edges, and after that it plays like a 3x3 (4LLL for the last layer). Careful: six of the Trainer algorithms (the ones with r, f or M) have to be rewritten for a 4x4, and two last-layer cases can show up that are impossible on a 3x3: OLL parity and PLL parity. This page has the notation you need, the 4x4 version of every algorithm and a checked recipe for each case.',
       'n4.flow.title': 'Where parity fits',
-      'n4.flow.1': 'Solve the centers and pair up the edges (reduction). A paired edge, made of two edge pieces, is called a dedge (double edge) on this page.',
+      'n4.flow.1': 'Solve the centers and pair up the edges (reduction). A paired edge, made of two edge pieces, is called a dedge (double edge) on this page. If the last two edges do not pair up with slice moves, use the card "Last two edges" below.',
       'n4.flow.2': 'Solve it like a 3x3. For the last layer use the four steps of the Trainer: yellow cross, orient corners, permute corners, permute edges. Six of the sixteen Trainer algorithms are written with r, f or M for the 3x3 and do not work as written on a 4x4: the Trainer in 4x4 mode already shows their 4x4 version, and the card "Trainer algorithms on a 4x4" (below) lists them.',
       'n4.flow.3': 'If at one of those steps you see something that cannot happen on a 3x3, it is parity. The cards below tell you which one and how to fix it.',
       'n4.hold.title': 'How to hold the cube',
@@ -177,12 +178,49 @@
       'n4.shortcut.text': 'Same result without the separate corner step. Use it only with the headlights at the front or at the back: with the headlights on the left or right side the parity algorithm leaves an F-perm, which the T-perm does not solve.',
       'n4.next.oll': 'Next: step 2 of the Trainer (orient corners), then steps 3 and 4 as usual. PLL parity can still show up in step 3 or 4.',
       'n4.next.pll': 'Done: the last layer, and with it the whole cube, is solved.',
+
+      'n4.e2.title': 'Last two edges (edge pairing)',
+      'n4.e2.lead': 'This step belongs to the reduction stage, before the 3x3 stage. When only two edges are left to pair, slice moves cannot join them. The recipe below pairs both at once, whatever the arrangement: it was checked on all {n} possible arrangements of those two edges, and the ten finished pairs stay paired and the centers stay solved.',
+      'n4.e2.when.title': 'When you need it',
+      'n4.e2.when.text': 'Ten of the twelve edges are paired and the last two are not. An edge is made of two halves (two edge pieces, also called wings). In each of these two edges the two halves do not match (on the same face of the edge you see two different stickers), so there are four loose halves that belong together in pairs. Slice moves cannot join them: to bring two halves together you need a free place to put them, and here every other place already holds a finished pair.',
+      'n4.e2.when.not': 'This is not parity. Parity shows up later, in the last layer (see the parity cards below). Here the only problem is that two edges are still unpaired.',
+      'n4.e2.hold.title': 'How to hold the cube and bring the two edges to the front',
+      'n4.e2.hold.1': 'Find the two edges that are not paired: the only ones whose two halves do not match (the two stickers on the same face of the edge are different colors).',
+      'n4.e2.hold.2': 'Hold the cube so that one of them is the left vertical edge of the front face (the edge between the front and the left faces, called FL).',
+      'n4.e2.hold.3': 'If the other one is already the right vertical edge of the front face (FR), you are ready. If not, look for where it is in the table and do those moves. They only turn outer faces, never inner slices, and they never move the left edge, so every pair and every center stays as it is. A place is named with the two faces its edge touches: UR is the edge between the top (U) and the right (R) faces.',
+      'n4.e2.hold.cap': 'Ready: the two unpaired edges are the left and right vertical edges of the front face.',
+      'n4.e2.hold.upside': 'You can also hold the cube upside down (a z2 rotation): the two edges are still on the left and right of the front face and the recipe works the same.',
+      'n4.e2.setup.head': 'Where the other edge is, and what to do',
+      'n4.e2.setup.none': 'Nothing to do',
+      'n4.e2.rec.title': 'Which case do I have?',
+      'n4.e2.rec.text': 'Look only at the front face. The two edges show four stickers there: upper left, lower left, upper right and lower right (the middle two rows of its left and right columns).',
+      'n4.e2.rec.side': 'Case 1, side by side: the upper left and upper right stickers have the same color, and so do the lower left and lower right ones.',
+      'n4.e2.rec.cross': 'Case 2, crossed: any other combination.',
+      'n4.e2.rec.why': 'The halves that belong together have the same two colors (the sticker on the front and the one on the side). In Case 1 they are side by side at the same height, one on each edge. In Case 2 they are diagonal: one is high on one edge and the other is low on the other edge.',
+      'n4.e2.cap.front': 'Seen straight on: the front face with the neighboring stickers next to it. Colored: the centers and the four halves of the two unpaired edges. Gray: other pieces, not needed here.',
+      'n4.e2.cap.case.side': 'Case 1 example',
+      'n4.e2.cap.case.cross': 'Case 2 example',
+      'n4.e2.alt.case': 'Front view of the two unpaired edges of this case.',
+      'n4.e2.alt.step': 'Front view after step {n}.',
+      'n4.e2.tag.side': 'Case 1',
+      'n4.e2.tag.cross': 'Case 2',
+      'n4.e2.c.side.title': 'Case 1: matching halves side by side',
+      'n4.e2.c.cross.title': 'Case 2: matching halves crossed',
+      'n4.e2.c.side.rec': 'On the front face, the upper stickers match each other and the lower ones match each other.',
+      'n4.e2.c.cross.rec': 'The front stickers do not match like that. First turn the right edge over: that makes it Case 1.',
+      'n4.e2.alg.note': 'Dw is the bottom face and the inner slice next to it, turning together like D (clockwise as seen from below). Always write it Dw, never the one-letter short form. All the other moves are normal outer turns.',
+      'n4.e2.dw.cap': 'Dw: the two bottom layers turn together.',
+      'n4.e2.step.hold': 'Hold the cube so that the two unpaired edges are the left and right vertical edges of the front face (see the table above).',
+      'n4.e2.step.swap': 'Do the algorithm. Right after it, other pieces of the cube are in different places (other pairs have moved, the corners are mixed up): that is expected. What matters is that the centers are solved and all twelve edges are paired.',
+      'n4.e2.step.flip': 'Do these five outer turns. They turn the right edge over: its two halves swap places. The front now looks like Case 1.',
+      'n4.e2.step.swap.then': 'Now it is Case 1: do its algorithm. Right after it, other pieces are in different places: that is expected. All twelve edges are now paired.',
+      'n4.e2.next': 'Done: all 12 edges are paired. Next comes the 3x3 stage (cross, first layers, last layer); parity can still show up at the end of it.',
     },
     es: {
       'n4.title': 'Resolver un 4x4: notación y paridades',
       'n4.lead': 'En un 4x4 se resuelve por reducción: primero los centros, luego se emparejan las aristas y después se juega como un 3x3 (4LLL para la última capa). Ojo: seis de los algoritmos del Entrenador (los que llevan r, f o M) hay que reescribirlos para un 4x4, y en la última capa pueden aparecer dos casos que en un 3x3 son imposibles: la paridad de OLL y la paridad de PLL. Aquí tienes la notación que necesitas, la versión de 4x4 de cada algoritmo y una receta comprobada para cada caso.',
       'n4.flow.title': 'Dónde encajan las paridades',
-      'n4.flow.1': 'Resuelve los centros y empareja las aristas (reducción). Una arista emparejada, formada por dos piezas de arista, se llama «arista doble» en esta página.',
+      'n4.flow.1': 'Resuelve los centros y empareja las aristas (reducción). Una arista emparejada, formada por dos piezas de arista, se llama «arista doble» en esta página. Si las dos últimas aristas no se emparejan con movimientos de capa, usa la tarjeta «Las dos últimas aristas» de más abajo.',
       'n4.flow.2': 'Resuélvelo como un 3x3. Para la última capa usa los cuatro pasos del Entrenador: cruz amarilla, orientar esquinas, permutar esquinas y permutar aristas. Seis de los dieciséis algoritmos del Entrenador están escritos con r, f o M para el 3x3 y no funcionan tal cual en un 4x4: el Entrenador en modo 4x4 ya muestra su versión de 4x4 y la tarjeta «Algoritmos del Entrenador en un 4x4» (más abajo) los lista.',
       'n4.flow.3': 'Si en alguno de esos pasos ves algo que en un 3x3 no puede pasar, es una paridad. Las tarjetas de abajo te dicen cuál es y cómo arreglarla.',
       'n4.hold.title': 'Cómo sostener el cubo',
@@ -337,6 +375,43 @@
       'n4.shortcut.text': 'El mismo resultado sin el paso de esquinas por separado. Úsalo solo con los faros delante o atrás: con los faros a la izquierda o a la derecha, el algoritmo de paridad deja una F-perm, que la T-perm no resuelve.',
       'n4.next.oll': 'Después: paso 2 del Entrenador (orientar esquinas) y luego los pasos 3 y 4 como siempre. La paridad de PLL todavía puede aparecer en el paso 3 o 4.',
       'n4.next.pll': 'Listo: la última capa, y con ella todo el cubo, queda resuelta.',
+
+      'n4.e2.title': 'Las dos últimas aristas (emparejar aristas)',
+      'n4.e2.lead': 'Este paso es de la etapa de reducción, antes de la etapa de 3x3. Cuando solo quedan dos aristas por emparejar, los movimientos de capa no pueden unirlas. La receta de abajo empareja las dos a la vez, sea cual sea la disposición: se comprobó con las {n} disposiciones posibles de esas dos aristas, y las diez parejas terminadas siguen emparejadas y los centros siguen resueltos.',
+      'n4.e2.when.title': 'Cuándo la necesitas',
+      'n4.e2.when.text': 'Diez de las doce aristas están emparejadas y las dos últimas no. Una arista está formada por dos mitades (dos piezas de arista, también llamadas «wings»). En cada una de estas dos aristas las dos mitades no coinciden (en la misma cara de la arista ves dos pegatinas de colores distintos), así que quedan cuatro mitades sueltas que van juntas de dos en dos. Los movimientos de capa no pueden unirlas: para juntar dos mitades necesitas un sitio libre donde ponerlas, y aquí todos los demás sitios ya tienen una pareja terminada.',
+      'n4.e2.when.not': 'Esto no es paridad. La paridad aparece más tarde, en la última capa (mira las tarjetas de paridad de abajo). Aquí el único problema es que quedan dos aristas sin emparejar.',
+      'n4.e2.hold.title': 'Cómo sostener el cubo y llevar las dos aristas al frente',
+      'n4.e2.hold.1': 'Busca las dos aristas que no están emparejadas: las únicas cuyas dos mitades no coinciden (las dos pegatinas de la misma cara de la arista son de colores distintos).',
+      'n4.e2.hold.2': 'Sostén el cubo de modo que una de ellas sea la arista vertical izquierda de la cara frontal (la arista entre la cara frontal y la izquierda, llamada FL).',
+      'n4.e2.hold.3': 'Si la otra ya es la arista vertical derecha de la cara frontal (FR), estás listo. Si no, busca dónde está en la tabla y haz esos movimientos. Solo giran caras exteriores, nunca capas interiores, y no mueven nunca la arista izquierda, así que todas las parejas y todos los centros se quedan como están. Un sitio se nombra con las dos caras que toca su arista: UR es la arista entre la cara de arriba (U) y la derecha (R).',
+      'n4.e2.hold.cap': 'Listo: las dos aristas sin emparejar son las aristas verticales izquierda y derecha de la cara frontal.',
+      'n4.e2.hold.upside': 'También puedes sostener el cubo boca abajo (una rotación z2): las dos aristas siguen a la izquierda y a la derecha de la cara frontal y la receta funciona igual.',
+      'n4.e2.setup.head': 'Dónde está la otra arista y qué hacer',
+      'n4.e2.setup.none': 'Nada que hacer',
+      'n4.e2.rec.title': '¿Qué caso tengo?',
+      'n4.e2.rec.text': 'Mira solo la cara frontal. Las dos aristas muestran ahí cuatro piezas de color: arriba a la izquierda, abajo a la izquierda, arriba a la derecha y abajo a la derecha (las dos filas del medio de sus columnas izquierda y derecha).',
+      'n4.e2.rec.side': 'Caso 1, lado a lado: las piezas de arriba a la izquierda y arriba a la derecha tienen el mismo color, y las de abajo a la izquierda y abajo a la derecha también.',
+      'n4.e2.rec.cross': 'Caso 2, cruzado: cualquier otra combinación.',
+      'n4.e2.rec.why': 'Las mitades que van juntas tienen los mismos dos colores (la pieza del frente y la del lado). En el caso 1 están lado a lado, a la misma altura, una en cada arista. En el caso 2 están en diagonal: una está arriba en una arista y la otra abajo en la otra.',
+      'n4.e2.cap.front': 'Vista de frente: la cara frontal con las piezas vecinas a su lado. En color: los centros y las cuatro mitades de las dos aristas sin emparejar. En gris: las demás piezas, que aquí no importan.',
+      'n4.e2.cap.case.side': 'Ejemplo del caso 1',
+      'n4.e2.cap.case.cross': 'Ejemplo del caso 2',
+      'n4.e2.alt.case': 'Vista de frente de las dos aristas sin emparejar de este caso.',
+      'n4.e2.alt.step': 'Vista de frente después del paso {n}.',
+      'n4.e2.tag.side': 'Caso 1',
+      'n4.e2.tag.cross': 'Caso 2',
+      'n4.e2.c.side.title': 'Caso 1: mitades iguales lado a lado',
+      'n4.e2.c.cross.title': 'Caso 2: mitades iguales cruzadas',
+      'n4.e2.c.side.rec': 'En la cara frontal, las piezas de arriba coinciden entre sí y las de abajo también.',
+      'n4.e2.c.cross.rec': 'Las piezas del frente no coinciden así. Primero da la vuelta a la arista derecha: así pasa a ser el caso 1.',
+      'n4.e2.alg.note': 'Dw es la cara de abajo y la capa interior que tiene al lado, girando juntas como D (en sentido horario visto desde abajo). Escríbelo siempre Dw, nunca la forma corta de una letra. Todos los demás movimientos son giros normales de cara exterior.',
+      'n4.e2.dw.cap': 'Dw: las dos capas de abajo giran juntas.',
+      'n4.e2.step.hold': 'Sostén el cubo con las dos aristas sin emparejar como aristas verticales izquierda y derecha de la cara frontal (mira la tabla de arriba).',
+      'n4.e2.step.swap': 'Haz el algoritmo. Justo después, otras piezas del cubo están en sitios distintos (otras parejas se han movido, las esquinas están revueltas): es lo esperado. Lo que importa es que los centros están resueltos y las doce aristas están emparejadas.',
+      'n4.e2.step.flip': 'Haz estos cinco giros de cara exterior. Dan la vuelta a la arista derecha: sus dos mitades se intercambian. Ahora el frente se ve como en el caso 1.',
+      'n4.e2.step.swap.then': 'Ahora es el caso 1: haz su algoritmo. Justo después, otras piezas están en sitios distintos: es lo esperado. Las doce aristas quedan emparejadas.',
+      'n4.e2.next': 'Listo: las 12 aristas están emparejadas. Ahora viene la etapa de 3x3 (cruz, primeras capas, última capa); la paridad todavía puede aparecer al final.',
     },
   };
 
@@ -589,6 +664,79 @@
     return h;
   }
 
+  // ---- Las dos ultimas aristas (js/edges4.js): hold, reconocimiento, recetas ----
+  // Vista de frente (Cube3D.topSvg): la cara frontal y, alrededor, las piezas vecinas. `keep`: ids que se pintan (si no, gris).
+  function frontSvg(state, keep, title, size) {
+    return Cube3D.topSvg(E2.frontView(state, keep), Cube4.N, { colors: Cube4.COLORS, size: size, title: title });
+  }
+  function e2Run(id) { return E2.run(E2.exampleState(id)); }
+
+  // pasos de la receta de un caso: [{kind: 'hold'|'alg', alg, key, state, tracked}] a partir de los datos verificados
+  function e2Steps(id) {
+    var r = e2Run(id);
+    var out = [{ kind: 'hold', state: r.start.state, tracked: r.start.tracked }];
+    r.steps.forEach(function (s, k) {
+      var key = s.alg === E2.ALGS.FLIP ? 'flip' : (k > 0 ? 'swap.then' : 'swap');
+      out.push({ kind: 'alg', alg: s.alg, key: key, state: s.state, tracked: s.tracked });
+    });
+    return out;
+  }
+
+  function e2StepHtml(it, n, lang) {
+    var T = function (k, p) { return t(k, p, lang); };
+    var body = it.kind === 'hold'
+      ? '<p>' + esc(T('n4.e2.step.hold')) + '</p>'
+      : '<p>' + esc(T('n4.e2.step.' + it.key)) + '</p>' + algHtml(it.alg);
+    var fig = '<figure class="n4-step-fig">' + frontSvg(it.state, it.tracked, T('n4.e2.alt.step', { n: n }), 96) + '</figure>';
+    return '<li class="n4-step" data-step="' + it.kind + '"><div class="n4-step-body">' + body + '</div>' + fig + '</li>';
+  }
+
+  function e2CaseCard(id, lang) {
+    var T = function (k, p) { return t(k, p, lang); };
+    var items = e2Steps(id), st = items[0];
+    var whole = E2.caseById(id).steps.map(function (s) { return s.alg; }).join(' ');
+    var h = '<article class="card n4-case n4-e2-case" data-e2case="' + id + '">';
+    h += '<header class="n4-case-head"><h4>' + esc(T('n4.e2.c.' + id + '.title')) + '</h4><span class="chip n4-tag">' + esc(T('n4.e2.tag.' + id)) + '</span></header>';
+    h += '<div class="n4-case-top"><figure class="nt-fig n4-case-fig">' + frontSvg(st.state, st.tracked, T('n4.e2.alt.case'), 150) +
+      '<figcaption>' + esc(T('n4.e2.cap.case.' + id)) + '</figcaption></figure><div class="n4-case-text"><p><b>' +
+      esc(T('n4.label.recognize')) + '.</b> ' + esc(T('n4.e2.c.' + id + '.rec')) + '</p></div></div>';
+    h += '<div class="n4-algbox"><span class="n4-label">' + esc(T('n4.label.alg')) + '</span>' +
+      '<code class="n4-big" data-e2alg="' + esc(whole) + '">' + esc(whole) + '</code>' +
+      '<div class="n4-e2-dw"><figure class="nt-fig n4-dw-fig">' + beforeSvg('Dw', lang) + '<figcaption>' + esc(T('n4.e2.dw.cap')) + '</figcaption></figure>' +
+      '<p class="n4-algnote">' + esc(T('n4.e2.alg.note')) + '</p></div></div>';
+    h += '<h5 class="n4-label">' + esc(T('n4.label.steps')) + '</h5><ol class="n4-steps">' +
+      items.map(function (it, i) { return e2StepHtml(it, i + 1, lang); }).join('') + '</ol>';
+    h += '<p class="n4-next">' + esc(T('n4.e2.next')) + '</p>';
+    return h + '</article>';
+  }
+
+  function e2Section(lang) {
+    var T = function (k, p) { return t(k, p, lang); };
+    var h = '<h3 class="nt-sec" id="n4-e2">' + esc(T('n4.e2.title')) + '</h3><p class="nt-lead">' +
+      esc(T('n4.e2.lead', { n: E2.SITUATIONS.length })) + '</p>';
+    h += '<section class="card n4-e2-when"><h4>' + esc(T('n4.e2.when.title')) + '</h4><p>' + esc(T('n4.e2.when.text')) +
+      '</p><p class="nt-callout n4-note" role="note">' + esc(T('n4.e2.when.not')) + '</p></section>';
+
+    var ex = e2Steps('cross')[0];
+    h += '<section class="card n4-e2-hold"><h4>' + esc(T('n4.e2.hold.title')) + '</h4><div class="n4-case-top"><div class="n4-case-text"><ol class="n4-list">' +
+      [1, 2, 3].map(function (i) { return '<li>' + esc(T('n4.e2.hold.' + i)) + '</li>'; }).join('') + '</ol></div>' +
+      '<figure class="nt-fig n4-case-fig">' + frontSvg(ex.state, ex.tracked, T('n4.e2.alt.case'), 150) + '<figcaption>' + esc(T('n4.e2.hold.cap')) + '</figcaption></figure></div>';
+    h += '<h5 class="n4-label">' + esc(T('n4.e2.setup.head')) + '</h5><ul class="n4-setup">' + E2.SETUP.table.map(function (r) {
+      return '<li data-at="' + r.at + '"><span class="n4-at">' + r.at + '</span>' +
+        (r.moves ? '<code class="n4-alg" data-setup="' + esc(r.moves) + '">' + esc(r.moves) + '</code>' : '<span class="n4-none">' + esc(T('n4.e2.setup.none')) + '</span>') + '</li>';
+    }).join('') + '</ul><p class="nt-note">' + esc(T('n4.e2.hold.upside')) + '</p></section>';
+
+    h += '<section class="card n4-e2-rec"><h4>' + esc(T('n4.e2.rec.title')) + '</h4><p>' + esc(T('n4.e2.rec.text')) + '</p><div class="nt-figs">' +
+      ['side', 'cross'].map(function (id) {
+        var s0 = e2Steps(id)[0];
+        return '<figure class="nt-fig">' + frontSvg(s0.state, s0.tracked, T('n4.e2.alt.case'), 130) + '<figcaption>' + esc(T('n4.e2.cap.case.' + id)) + '</figcaption></figure>';
+      }).join('') + '</div><ul class="n4-list"><li>' + esc(T('n4.e2.rec.side')) + '</li><li>' + esc(T('n4.e2.rec.cross')) + '</li></ul>' +
+      '<p class="nt-note">' + esc(T('n4.e2.rec.why')) + '</p><p class="nt-note">' + esc(T('n4.e2.cap.front')) + '</p></section>';
+
+    E2.RECIPE.cases.forEach(function (c) { h += e2CaseCard(c.id, lang); });
+    return h;
+  }
+
   function build(lang) {
     lang = lang || curLang();
     return memo('html|' + lang, function () {
@@ -614,6 +762,8 @@
         h += '</div>';
       });
 
+      h += e2Section(lang);
+
       h += trainerCard(lang);
 
       h += '<h3 class="nt-sec">' + esc(T('n4.par.title')) + '</h3><p class="nt-lead">' + esc(T('n4.par.lead')) + '</p>';
@@ -633,6 +783,7 @@
     CALLOUTS: CALLOUTS,
     afterState: afterState,
     stepsFor: stepsFor,
+    e2Steps: e2Steps,
     build: build,
   };
 

@@ -4,7 +4,7 @@
 // Texts allow simple HTML (<b>, <i>, <code>). Both languages share the same structure (ids, goalMs, counts).
 // Ids use the prefix 'p4-' so the progress of the 3x3 plan (f0..f4) is never touched. goalMs is null everywhere:
 // the user's 4x4 times are not known, so the goals are skills. Every algorithm shown comes from js/parity4.js
-// (checked in tests/plan4.test.js); an inner slice is always written 2R / 2L, never the ambiguous lowercase r.
+// or js/edges4.js (checked in tests/plan4.test.js); an inner slice is always written 2R / 2L, never the ambiguous lowercase r.
 (function (root) {
   'use strict';
   var PLANS4 = {
@@ -89,7 +89,7 @@
                 "<b>Match by color:</b> two wings belong together when they have the same two colors (for example white-red), wherever they are on the cube.",
                 "<b>Pair the first edges in sets, not one by one:</b> look for several wings you can join in one go. The first 8 are the easy ones; the last 4 need care because almost any move can break a pair you already made.",
                 "<b>Protect finished pairs:</b> a slice move only touches the four edges around that slice. Hold the cube so the slice you turn does not pass through a finished pair, and put it back after you join two wings so the centers stay solved.",
-                "<b>The last two edges</b> often cannot be paired with plain slice moves. That case has its own algorithm (the 'flip' or last-two-edges algorithm, not included in this app): learn it from a 4x4 tutorial and try it on the cube before you rely on it.",
+                "<b>The last two edges</b> cannot be paired with plain slice moves. That case has its own algorithm, checked in this app (see the card <i>Last two edges</i> in the 4x4 Notation tab, with a diagram after every step): hold the two unpaired edges as the left and right vertical edges of the front face (the card has a small table to bring the second edge next to the first). If the halves that belong together are side by side (on the front, upper left = upper right and lower left = lower right), do <code>Dw R F' U R' F Dw'</code>; if they are crossed, first do <code>R F' U R' F</code> and then that same algorithm.",
                 "<b>This is not parity.</b> Parity only shows up in the last layer, after the reduction (Phase 3).",
               ],
             },
@@ -273,7 +273,7 @@
                 "<b>Empareja por color:</b> dos piezas van juntas cuando tienen los mismos dos colores (por ejemplo blanco-rojo), estén donde estén en el cubo.",
                 "<b>Empareja las primeras aristas por tandas, no una a una:</b> busca varias piezas que puedas unir de una vez. Las primeras 8 son las fáciles; las últimas 4 piden cuidado porque casi cualquier movimiento puede romper un par que ya hiciste.",
                 "<b>Protege los pares terminados:</b> un movimiento de capa solo toca las cuatro aristas que rodean esa capa. Sostén el cubo de modo que la capa que giras no pase por un par terminado, y devuélvela a su sitio después de unir dos piezas para que los centros sigan resueltos.",
-                "<b>Las dos últimas aristas</b> muchas veces no se pueden emparejar con simples movimientos de capa. Ese caso tiene su propio algoritmo (el «flip» o algoritmo de las dos últimas aristas, que esta app no incluye): apréndelo de un tutorial de 4x4 y pruébalo en el cubo antes de fiarte de él.",
+                "<b>Las dos últimas aristas</b> no se pueden emparejar con simples movimientos de capa. Ese caso tiene su propio algoritmo, comprobado en esta app (mira la tarjeta <i>Las dos últimas aristas</i> de la pestaña Notación en 4x4, con un diagrama después de cada paso): sostén las dos aristas sin emparejar como aristas verticales izquierda y derecha de la cara frontal (la tarjeta tiene una pequeña tabla para traer la segunda arista junto a la primera). Si las mitades que van juntas están lado a lado (en el frente, arriba a la izquierda = arriba a la derecha y abajo a la izquierda = abajo a la derecha), haz <code>Dw R F' U R' F Dw'</code>; si están cruzadas, haz primero <code>R F' U R' F</code> y luego ese mismo algoritmo.",
                 "<b>Esto no es paridad.</b> La paridad solo aparece en la última capa, después de la reducción (Fase 3).",
               ],
             },
