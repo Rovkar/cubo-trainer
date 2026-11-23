@@ -90,6 +90,7 @@
       'nt.m.M.x': 'Turn only the middle slice between L and R. It turns like L: the middle column of the front face goes DOWN.',
       'nt.m.M.xp': 'The opposite: the middle column of the front face goes UP.',
       'nt.m.M.x2': 'Half turn of the middle slice.',
+      'nt.size.label': 'Cube size',
     },
     es: {
       'nt.title': 'Cómo leer las letras de los movimientos',
@@ -155,6 +156,7 @@
       'nt.m.M.x': 'Gira solo la capa del medio entre L y R. Gira como L: la columna central de la cara frontal BAJA.',
       'nt.m.M.xp': 'Lo contrario: la columna central de la cara frontal SUBE.',
       'nt.m.M.x2': 'Media vuelta de la capa del medio.',
+      'nt.size.label': 'Tamaño del cubo',
     },
   };
 
@@ -261,6 +263,24 @@
     });
   }
 
+  // ---- Tamano 3x3 / 4x4 (preferencia del dispositivo, 'cubotrainer.ntSize') ----
+  var SIZE_KEY = 'cubotrainer.ntSize';
+  var SIZES = ['3x3', '4x4'];
+  var size = null; // se lee de localStorage la primera vez que se necesita
+  function loadSize() {
+    var v = null;
+    try { v = root.localStorage ? root.localStorage.getItem(SIZE_KEY) : null; } catch (e) { v = null; }
+    return SIZES.indexOf(v) >= 0 ? v : '3x3';
+  }
+  function curSize() { if (size === null) size = loadSize(); return size; }
+
+  function sizeSwitch() {
+    var cur = curSize();
+    return '<div class="seg nt-size" role="group" aria-label="' + esc(t('nt.size.label')) + '">' + SIZES.map(function (s) {
+      return '<button type="button" class="seg-btn' + (s === cur ? ' on' : '') + '" data-size="' + s + '" aria-pressed="' + (s === cur ? 'true' : 'false') + '">' + s + '</button>';
+    }).join('') + '</div>';
+  }
+
   var el = null;
   var NotationView = {
     MOVES: MOVES,
@@ -270,11 +290,32 @@
     mount: function (e) {
       el = e;
       if (el && el.classList) el.classList.add('nt');
+      // un solo listener por elemento aunque se llame a mount varias veces
+      if (el && el.addEventListener && !el.__ntBound) {
+        el.__ntBound = true;
+        el.addEventListener('click', function (ev) {
+          var b = ev.target && ev.target.closest ? ev.target.closest('button[data-size]') : null;
+          if (b) NotationView.setSize(b.getAttribute('data-size'), true);
+        });
+      }
       NotationView.render();
+    },
+    size: function () { return curSize(); },
+    // keepFocus: el cambio vino del propio selector; render() reemplaza el HTML y el foco volveria al inicio de la pagina
+    setSize: function (s, keepFocus) {
+      if (SIZES.indexOf(s) < 0) return;
+      size = s;
+      try { if (root.localStorage) root.localStorage.setItem(SIZE_KEY, s); } catch (e) { /* ignorar */ }
+      NotationView.render();
+      if (keepFocus && el && el.querySelector) {
+        var b = el.querySelector('.nt-size button[data-size="' + s + '"]');
+        if (b && b.focus) b.focus();
+      }
     },
     render: function () {
       if (!el) return;
-      el.innerHTML = build(curLang());
+      var lang = curLang(), four = curSize() === '4x4' && root.Notation4View;
+      el.innerHTML = sizeSwitch() + (four ? root.Notation4View.build(lang) : build(lang));
     },
   };
 

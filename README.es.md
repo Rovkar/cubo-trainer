@@ -25,7 +25,16 @@ App web para mejorar tus tiempos en el cubo 3x3 (método por capas): cronómetro
 - **Entrenador**: *Aprender* muestra los 16 casos de última capa con diagrama, algoritmo, consejo y estado (Nuevo / Aprendiendo / Dominado). *Practicar* te propone casos aleatorios (más a menudo los que estás aprendiendo y los más lentos): te da el setup, cronometras la ejecución y luego se revela la solución. Tras parar, Espacio pasa al siguiente caso.
 - **Estadísticas**: single, ao5, ao12, ao50 y ao100 (actual y mejor), gráfico de evolución con la meta de tu fase actual, análisis de en qué fase pierdes más tiempo, tabla completa de resoluciones y gestión del perfil (renombrar, borrar, exportar CSV, copia de seguridad JSON, importar JSON).
 - **Plan**: plan de entrenamiento por fases con hitos que puedes marcar, tu situación actual según tu ao12 (los hitos son de cada perfil), rutina diaria y consejos.
-- **Notación**: un diagrama por cada letra de movimiento (U D R L F B, cada una con `'` y `2`, más `r`, `f` y `M`, que usa el Entrenador), calculado con el motor del cubo. Cada uno incluye una descripción física del giro y una comprobación de *resultado sobre un cubo resuelto*.
+- **Notación**: un diagrama por cada letra de movimiento (U D R L F B, cada una con `'` y `2`, más `r`, `f` y `M`, que usa el Entrenador), calculado con el motor del cubo. Cada uno incluye una descripción física del giro y una comprobación de *resultado sobre un cubo resuelto*. Un selector **3x3 / 4x4** arriba (se recuerda por dispositivo) abre la sección de 4x4, descrita abajo.
+
+## Sección 4x4
+
+Para resolver un 4x4 por reducción (centros, emparejar aristas y luego los pasos del 3x3; seis de los 16 algoritmos del Entrenador se reescriben para un 4x4, ver abajo). Se abre en **Notación > 4x4** o con el botón *¿Resuelves un 4x4?* al final de **Entrenador > Aprender**. Incluye:
+
+- **Notación de 4x4**: cara exterior (`R`), capa interior (`2R`), movimiento ancho (`Rw`), movimiento ancho de tres capas (`3Rw`, `3Fw`) y rotaciones del cubo entero (`x`, `y`), cada una con un diagrama antes/después cuyas flechas se calculan con el motor del 4x4.
+- **Algoritmos del Entrenador en un 4x4**: los del Entrenador con `r`, `f` o `M` (T y L de orientar esquinas, forma de L y punto de la cruz, H y Z) no funcionan tal cual en un 4x4: desemparejan aristas o usan un movimiento que no existe. La página lista sus versiones de 4x4 (`r` -> `3Rw`, `f` -> `3Fw`, `M` -> `2L 2R'`); de cada una se comprobó que tiene exactamente el efecto del 3x3 en un cubo reducido. Los otros 10 funcionan tal cual.
+- **Los dos casos de paridad de la última capa**: paridad de OLL (un número impar, 1 o 3, de aristas dobles volteadas) y paridad de PLL (dos aristas opuestas, dos aristas vecinas, dos esquinas vecinas intercambiadas, o cualquier otra disposición impar, como las cuatro aristas en un ciclo). Cada tarjeta tiene un diagrama desde arriba, cómo reconocerlo en los 4 pasos del Entrenador, cómo sostener el cubo, el algoritmo y pasos numerados con un diagrama pequeño después de cada uno. Los algoritmos y los pasos se comprobaron ejecutándolos en el motor (y el motor, contra un simulador independiente). Una regla general cubre toda disposición impar de aristas (algoritmo de paridad una vez, media vuelta y luego el paso 4 normal); un intercambio en diagonal de dos esquinas con las aristas resueltas no está cubierto.
+- **Cuidado con la `r`**: muchos tutoriales escriben `r`/`r2` para la capa interior sola, pero en esta app (pestaña Notación, 3x3) una `r` minúscula significa `Rw` (dos capas). En la sección de 4x4 la capa interior se escribe siempre `2R` y los movimientos anchos `Rw`, nunca `r`.
 
 ## Perfiles
 
@@ -67,6 +76,9 @@ node tests/verify-cube.js
 node tests/i18n.test.js
 node tests/content.test.js
 node tests/notation.test.js
+node tests/cube4.test.js
+node tests/parity.test.js
+node tests/notation4.test.js
 ```
 
 ## Estructura
@@ -74,5 +86,6 @@ node tests/notation.test.js
 - `index.html`, `css/styles.css`, `css/notation.css`
 - `js/i18n.js`: gestión del idioma (inglés por defecto, español) y textos de la interfaz.
 - `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`: modelo del cubo, dibujo del cubo en 3D, algoritmos y datos del plan (ambos bilingües).
-- `js/notation.js`: la pestaña Notación (diagramas de movimientos calculados con el motor del cubo).
+- `js/notation.js`: la pestaña Notación (diagramas de movimientos calculados con el motor del cubo, selector 3x3 / 4x4).
+- `js/cube4.js`, `js/parity4.js`, `js/notation4.js`: el motor del 4x4, los algoritmos y recetas de paridad comprobados, y la sección de 4x4 de la pestaña Notación.
 - `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistencia, estadísticas, cronómetro, entrenador, vista del plan y arranque.

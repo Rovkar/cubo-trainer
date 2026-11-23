@@ -32,3 +32,60 @@
 .nt-name { font-weight: 700; }
 .nt-callout { margin: 0; border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--card)); padding: 8px 10px; border-radius: 0 8px 8px 0; font-size: .86rem; }
 .nt-quick { margin: 0; font-size: .84rem; color: var(--muted); }
+
+/* Selector 3x3 / 4x4 */
+.nt-size { margin-bottom: 14px; }
+
+/* Seccion 4x4: prefijo n4- (reutiliza nt-*) */
+.nt .n4-card .nt-mv, .nt .n4-kinds .nt-mv { flex-basis: 4.6ch; }
+.n4-group { margin: 18px 0 8px; font-size: 1rem; }
+.n4-warn { margin: 0 0 14px; border-left-width: 5px; font-size: .92rem; }
+.n4-list { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; font-size: .92rem; }
+.n4-kinds li { align-items: flex-start; }
+.n4-equiv { margin: 0; font-size: .82rem; color: var(--muted); }
+.n4-equiv code { font-weight: 700; color: var(--text); word-break: break-word; }
+.n4-link h3 { margin-bottom: 4px; }
+.n4-link p { margin: 0 0 10px; font-size: .92rem; }
+
+.n4-case { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.n4-case-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.n4-case-head h4 { margin: 0; font-size: 1.1rem; }
+.n4-tag { background: var(--hover); border: 1px solid var(--border); color: var(--muted); }
+.n4-case-top { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.n4-case-fig { flex: 0 1 190px; min-width: 150px; }
+.n4-case-text { flex: 1 1 240px; min-width: 0; }
+.n4-case-text p { font-size: .92rem; }
+.n4-pre { color: var(--muted); }
+.n4-algbox { background: var(--hover); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.n4-label { display: block; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+h5.n4-label { margin: 4px 0 0; }
+.n4-big { display: block; font: 700 1.2rem/1.5 ui-monospace, "SFMono-Regular", Consolas, monospace; word-break: normal; overflow-wrap: break-word; }
+.n4-algnote { margin: 8px 0 0; font-size: .82rem; color: var(--muted); }
+.n4-note { font-size: .88rem; }
+.n4-steps { list-style: none; counter-reset: n4step; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.n4-step { counter-increment: n4step; position: relative; display: flex; gap: 12px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 12px; padding: 10px 10px 10px 42px; min-width: 0; }
+.n4-step::before { content: counter(n4step); position: absolute; left: 10px; top: 10px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font-weight: 800; font-size: .85rem; display: flex; align-items: center; justify-content: center; }
+.n4-step-body { flex: 1 1 200px; min-width: 0; }
+.n4-step-body p { margin: 0 0 6px; font-size: .92rem; }
+.n4-step-fig { flex: 0 0 auto; margin: 0; }
+.n4-step-fig svg { width: 96px; height: 96px; }
+.n4-alg { display: block; font: 700 1.02rem/1.5 ui-monospace, "SFMono-Regular", Consolas, monospace; background: var(--hover); padding: 6px 8px; border-radius: 8px; overflow-wrap: break-word; }
+.n4-shortcut { border: 1px dashed var(--border); border-radius: 12px; padding: 8px 12px; }
+.n4-shortcut summary { cursor: pointer; font-weight: 700; }
+.n4-shortcut > p { font-size: .88rem; color: var(--muted); margin: 8px 0; }
+.n4-next { margin: 0; font-weight: 600; font-size: .92rem; }
+.n4-sub { margin: 6px 0 4px !important; font-size: .82rem !important; font-weight: 700; color: var(--muted); }
+.n4-alg4 { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .88rem; }
+.n4-alg4 li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.n4-tr { display: flex; flex-direction: column; gap: 10px; min-width: 0; margin-bottom: 14px; }
+.n4-tr h4 { margin: 0; font-size: 1.1rem; }
+.n4-tr > p { margin: 0; font-size: .92rem; }
+.n4-trlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.n4-trlist li { border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.n4-trrow { min-width: 0; }
+.n4-trrow .n4-label { margin: 4px 0 2px; }
+.n4-old { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+@media (max-width: 480px) {
+  .n4-step { flex-wrap: wrap; justify-content: flex-start; }
+  .n4-big { font-size: 1.05rem; }
+}

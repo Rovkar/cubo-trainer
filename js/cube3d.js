@@ -3,7 +3,12 @@
 
   // Vista isometrica del cubo (puro, sin DOM). Las flechas se derivan de la
   // geometria del motor (Cube.moveInfo + Cube.stickerGeom), nunca por letra.
+  // NxN: opts.engine = { N, stickerGeom, moveInfo, COLORS } (p = centro del cubie, n = normal; la
+  // superficie esta a p + n/2 y el cubo mide N). Sin engine se usa el motor 3x3 de cube.js.
   var Cube = (typeof module !== 'undefined' && module.exports) ? require('./cube.js') : root.Cube;
+  var DEFAULT_ENGINE = { N: 3, stickerGeom: Cube.stickerGeom, moveInfo: Cube.moveInfo, COLORS: Cube.COLORS };
+
+  function engineOf(e) { return e || DEFAULT_ENGINE; }
 
   var DEG = Math.PI / 180;
   var DEFAULT_VIEW = { yaw: -35, pitch: 28 };
@@ -46,8 +51,10 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // Centro del facelet sobre la superficie (el cubo mide 3: la capa p=+-1 esta a 1.5 del centro).
+  // Centro del facelet sobre la superficie (la capa exterior esta a N/2 - 1/2 del centro; +1/2 hasta la cara).
   function surface(g) { return add(g.p, g.n, 0.5); }
+  // Centro de la cara f (sobre la superficie): n * N/2.
+  function faceCenter(f, E) { var n = NORMAL[f], h = E.N / 2; return [n[0] * h, n[1] * h, n[2] * h]; }
 
   // Puntos 2D (pantalla) -> [x, y]
   function scr(p3, view) { var q = project(p3, view); return [q.x, q.y]; }
@@ -61,15 +68,16 @@
   }
 
   // ---- Flechas derivadas del motor ----
-  function arrows(token, view) {
-    var info = Cube.moveInfo(token), ax = info.axis;
+  function arrows(token, view, engine) {
+    var E = engineOf(engine), NN = E.N, sc = NN / 3; // sc = 1 en el 3x3 (salida identica)
+    var info = E.moveInfo(token), ax = info.axis;
     var omega = [0, 0, 0];
     omega[ax] = info.dir; // velocidad angular: dir * eje (regla de la mano derecha)
     var out = [];
     visibleFaces(view).forEach(function (f) {
       var n = NORMAL[f], nAx = axisOf(n), moving = [], i, g;
-      for (i = 0; i < 9; i++) {
-        g = Cube.stickerGeom(f, i);
+      for (i = 0; i < NN * NN; i++) {
+        g = E.stickerGeom(f, i);
         g.i = i;
         if (info.layers.indexOf(g.p[ax]) >= 0) moving.push(g);
       }
@@ -77,11 +85,11 @@
 
       if (nAx === ax) {
         // La cara que gira es visible: flecha curva (~270 grados) alrededor del centro.
-        var c3 = surface(Cube.stickerGeom(f, 4));
+        var c3 = faceCenter(f, E);
         var e1 = nAx === 1 ? [0, 0, 1] : [0, 1, 0];
         var e2 = cross(n, e1);               // e1 x e2 = n  (antihorario visto desde +n = theta creciente)
         var ccw = info.dir * n[ax] > 0;     // omega . n > 0
-        var R = 0.95, N = 28, a0 = ccw ? 45 : 315, step = (ccw ? 270 : -270) / N;
+        var R = 0.95 * sc, N = 28, a0 = ccw ? 45 : 315, step = (ccw ? 270 : -270) / N;
         var pts = [], k, th;
         for (k = 0; k <= N; k++) {
           th = (a0 + step * k) * DEG;
@@ -95,14 +103,14 @@
         }
         out.push({ face: f, kind: 'arc', from: pts[0], to: pts[pts.length - 1], cw: sum > 0, pts: pts, turns: info.turns });
       } else {
-        // Capas que cruzan la cara: una tira (3 facelets) por capa -> una flecha recta por tira.
+        // Capas que cruzan la cara: una tira (N facelets) por capa -> una flecha recta por tira.
         info.layers.forEach(function (L) {
           var strip = moving.filter(function (s) { return s.p[ax] === L; });
-          if (strip.length !== 3) return;
+          if (strip.length !== NN) return;
           var mid = [0, 0, 0];
-          strip.forEach(function (s) { mid = add(mid, surface(s), 1 / 3); });
+          strip.forEach(function (s) { mid = add(mid, surface(s), 1 / NN); });
           var t3 = norm(cross(omega, mid)); // tangente omega x p, ya contenida en el plano de la cara
-          var p0 = scr(add(mid, t3, -1.2), view), p1 = scr(add(mid, t3, 1.2), view);
+          var p0 = scr(add(mid, t3, -1.2 * sc), view), p1 = scr(add(mid, t3, 1.2 * sc), view);
           out.push({
             face: f, kind: 'line', from: p0, to: p1, cw: undefined, pts: [p0, p1], turns: info.turns,
             dir3: t3, stickers: strip.map(function (s) { return s.i; }), // tangente 3D y facelets de la tira
@@ -160,12 +168,13 @@
 
   function svg(state, opts) {
     opts = opts || {};
+    var E = engineOf(opts.engine), NN = E.N, half = NN / 2;
     var view = viewOf(opts.view);
     var size = opts.size || 160;
     var faces = visibleFaces(view);
     var corners = [], sx, sy, sz;
     for (sx = -1; sx <= 1; sx += 2) for (sy = -1; sy <= 1; sy += 2) for (sz = -1; sz <= 1; sz += 2) {
-      corners.push(scr([sx * 1.5, sy * 1.5, sz * 1.5], view));
+      corners.push(scr([sx * half, sy * half, sz * half], view));
     }
     var H = hull(corners);
     var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -175,30 +184,59 @@
     });
     var pad = 0.3, vw = maxX - minX + 2 * pad, vh = maxY - minY + 2 * pad;
     var w = size, h = Math.round(size * vh / vw);
-    var hi = opts.highlight ? Cube.moveInfo(opts.highlight) : null;
+    var hi = opts.highlight ? E.moveInfo(opts.highlight) : null;
 
     var o = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + num(minX - pad) + ' ' + num(minY - pad) + ' ' + num(vw) + ' ' + num(vh) +
       '" width="' + w + '" height="' + h + '" role="img" aria-label="' + esc(opts.title || "Rubik's cube") + '" style="max-width:100%;height:auto">'];
     o.push('<path d="M' + H.map(function (p) { return num(p[0]) + ' ' + num(p[1]); }).join('L') + 'Z" fill="' + BODY + '" stroke="' + BODY + '" stroke-width="0.24" stroke-linejoin="round"/>');
     o.push('<g style="stroke:var(--stk);stroke-width:0.04;stroke-linejoin:round">');
     faces.forEach(function (f) {
-      for (var i = 0; i < 9; i++) {
-        var g = Cube.stickerGeom(f, i);
+      for (var i = 0; i < NN * NN; i++) {
+        var g = E.stickerGeom(f, i);
         var q = stickerCorners(g, 0.45).map(function (c) { return num(scr(c, view)[0]) + ' ' + num(scr(c, view)[1]); });
         var dim = hi && hi.layers.indexOf(g.p[hi.axis]) < 0;
-        o.push('<path data-s="' + f + i + '" fill="' + Cube.COLORS[state[f][i]] + '"' + (dim ? ' opacity="0.5"' : '') + ' d="M' + q.join('L') + 'Z"/>');
+        o.push('<path data-s="' + f + i + '" fill="' + E.COLORS[state[f][i]] + '"' + (dim ? ' opacity="0.5"' : '') + ' d="M' + q.join('L') + 'Z"/>');
       }
     });
     o.push('</g>');
     if (opts.labels) {
       faces.forEach(function (f) {
-        var c = scr(surface(Cube.stickerGeom(f, 4)), view);
+        var c = scr(faceCenter(f, E), view);
         o.push('<text x="' + num(c[0]) + '" y="' + num(c[1] + 0.3) + '" text-anchor="middle" font-size="0.9" font-weight="800" ' +
           'font-family="ui-monospace,Consolas,monospace" fill="#111" stroke="#fff" stroke-width="0.2" stroke-linejoin="round" paint-order="stroke">' + f + '</text>');
       });
     }
     if (opts.arrows) {
-      arrows(opts.arrows, view).forEach(function (a) { o.push(arrowSvg(a)); });
+      arrows(opts.arrows, view, E).forEach(function (a) { o.push(arrowSvg(a)); });
+    }
+    o.push('</svg>');
+    return o.join('');
+  }
+
+  // Vista superior de la ultima capa de un cubo NxN (como el diagrama 3x3 del Entrenador): la cara U (N*N)
+  // y una tira de N facelets por cada lado (b arriba, r derecha, f abajo, l izquierda). 'x' o vacio = gris.
+  // view = { u, b, r, f, l } (p. ej. Cube4.lastLayerView). Las celdas llevan data-t="u0".."l3".
+  function topSvg(view, N, opts) {
+    opts = opts || {};
+    var C = opts.colors || Cube.COLORS, size = opts.size || 130;
+    var gap = 2, m = 18, th = 8, span = 64, cell = (span - (N - 1) * gap) / N, rx = N > 3 ? 2.5 : 3;
+    var o = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="' + size + '" height="' + size +
+      '" role="img" aria-label="' + esc(opts.title || 'Last layer') + '" style="max-width:100%;height:auto">'];
+    function rect(id, x, y, w, h, v) {
+      var fill = (!v || v === 'x') ? 'var(--hidden)' : C[v];
+      o.push('<rect data-t="' + id + '" x="' + num(x) + '" y="' + num(y) + '" width="' + num(w) + '" height="' + num(h) +
+        '" rx="' + rx + '" fill="' + fill + '" stroke="var(--stk)" stroke-width="0.8"/>');
+    }
+    var i, k, p;
+    for (i = 0; i < N * N; i++) {
+      rect('u' + i, m + (i % N) * (cell + gap), m + Math.floor(i / N) * (cell + gap), cell, cell, view.u[i]);
+    }
+    for (k = 0; k < N; k++) {
+      p = m + k * (cell + gap);
+      rect('b' + k, p, 6, cell, th, view.b[k]);
+      rect('r' + k, 86, p, th, cell, view.r[k]);
+      rect('f' + k, p, 86, cell, th, view.f[k]);
+      rect('l' + k, 6, p, th, cell, view.l[k]);
     }
     o.push('</svg>');
     return o.join('');
@@ -210,6 +248,7 @@
     visibleFaces: visibleFaces,
     svg: svg,
     arrows: arrows,
+    topSvg: topSvg,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = Cube3D;

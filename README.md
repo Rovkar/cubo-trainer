@@ -25,7 +25,16 @@ A web app to improve your 3x3 Rubik's cube times (layer-by-layer method): timer 
 - **Trainer**: *Learn* shows the 16 last-layer cases with diagram, algorithm, tip and status (New / Learning / Mastered). *Practice* suggests random cases (more often the ones you are learning and the slowest ones): it gives you the setup, you time the execution and then the solution is revealed. After stopping, Space moves to the next case.
 - **Stats**: single, ao5, ao12, ao50 and ao100 (current and best), a progress chart with the goal of your current phase, an analysis of which phase loses you the most time, the full solve table and profile management (rename, delete, export CSV, JSON backup, import JSON).
 - **Plan**: a phase-by-phase training plan with milestones you can tick off, your current situation based on your ao12 (milestones are per profile), a daily routine and tips.
-- **Notation**: one diagram per move letter (U D R L F B, each with `'` and `2`, plus `r`, `f` and `M`, which the Trainer uses), computed from the cube engine. Each one has a physical description of the turn and a *result on a solved cube* self-check.
+- **Notation**: one diagram per move letter (U D R L F B, each with `'` and `2`, plus `r`, `f` and `M`, which the Trainer uses), computed from the cube engine. Each one has a physical description of the turn and a *result on a solved cube* self-check. A **3x3 / 4x4** switch at the top (remembered per device) opens the 4x4 section, described below.
+
+## 4x4 section
+
+For solving a 4x4 by reduction (centers, edge pairing, then the 3x3 steps; six of the 16 Trainer algorithms are rewritten for a 4x4, see below). Open it in **Notation > 4x4**, or with the *Solving a 4x4?* button at the end of **Trainer > Learn**. It has:
+
+- **4x4 notation**: outer face (`R`), inner slice (`2R`), wide move (`Rw`), three-layer wide move (`3Rw`, `3Fw`) and whole-cube rotations (`x`, `y`), each with a before/after diagram whose arrows are computed from the 4x4 engine.
+- **Trainer algorithms on a 4x4**: the Trainer algorithms with `r`, `f` or `M` (T and L orient-corners, L-shape and dot, H and Z) do not work as written on a 4x4: they unpair dedges or use a move that does not exist. The page lists their 4x4 versions (`r` -> `3Rw`, `f` -> `3Fw`, `M` -> `2L 2R'`); each was checked to have exactly the 3x3 effect on a reduced cube. The other 10 work as they are.
+- **The two last-layer parity cases**: OLL parity (an odd number, 1 or 3, of flipped dedges) and PLL parity (two opposite edges, two adjacent edges, two adjacent corners swapped, or any other odd arrangement such as all four edges in a cycle). Each card has a top-view diagram, how to recognize it in the 4-step flow of the Trainer, how to hold the cube, the algorithm and numbered steps with a small diagram after each one. The algorithms and steps were checked by running them on the engine (and, for the engine, against an independent simulator). A general rule covers every odd edge arrangement (parity algorithm once, a half turn, then the normal step 4); a diagonal corner swap with solved edges is not covered.
+- **Careful with `r`**: many tutorials write `r`/`r2` for the inner slice only, but in this app (Notation tab, 3x3) a lowercase `r` means `Rw` (two layers). In the 4x4 section the inner slice is always written `2R` and wide moves `Rw`, never `r`.
 
 ## Profiles
 
@@ -67,6 +76,9 @@ node tests/verify-cube.js
 node tests/i18n.test.js
 node tests/content.test.js
 node tests/notation.test.js
+node tests/cube4.test.js
+node tests/parity.test.js
+node tests/notation4.test.js
 ```
 
 ## Structure
@@ -74,5 +86,6 @@ node tests/notation.test.js
 - `index.html`, `css/styles.css`, `css/notation.css`
 - `js/i18n.js`: language handling (English default, Spanish) and UI texts.
 - `js/cube.js`, `js/cube3d.js`, `js/algs.js`, `js/plan.js`: cube model, 3D cube drawing, algorithms and plan data (both bilingual).
-- `js/notation.js`: the Notation tab (move diagrams computed from the cube engine).
+- `js/notation.js`: the Notation tab (move diagrams computed from the cube engine, 3x3 / 4x4 switch).
+- `js/cube4.js`, `js/parity4.js`, `js/notation4.js`: the 4x4 engine, the checked parity algorithms and recipes, and the 4x4 section of the Notation tab.
 - `js/storage.js`, `js/stats.js`, `js/timer.js`, `js/trainer.js`, `js/planview.js`, `js/app.js`: persistence, statistics, timer, trainer, plan view and startup.

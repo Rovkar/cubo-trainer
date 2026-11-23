@@ -75,6 +75,9 @@
       'trainer.setup': 'Setup (yellow on top, green in front):',
       'trainer.reveal': 'Show solution', 'trainer.next': 'Next case',
       'trainer.hint': 'Hold Space (or tap here) and release to start; press again to stop',
+      'trainer.n4.title': 'Solving a 4x4?',
+      'trainer.n4.text': 'On a 4x4 two last-layer cases can show up that never happen on a 3x3 (OLL parity and PLL parity). They need their own algorithms, and the Trainer algorithms with r, f or M need a 4x4 version.',
+      'trainer.n4.btn': 'See the 4x4 section',
 
       'plan.situation': 'Status of {name}', 'plan.currentAo12': 'Current ao12:', 'plan.noAo12': 'not enough solves yet (need 12)',
       'plan.currentPhase': 'Current phase:', 'plan.goal': 'Goal:',
@@ -150,6 +153,9 @@
       'trainer.setup': 'Preparación (amarillo arriba, verde al frente):',
       'trainer.reveal': 'Mostrar solución', 'trainer.next': 'Siguiente caso',
       'trainer.hint': 'Mantén Espacio (o toca aquí) y suelta para empezar; pulsa de nuevo para parar',
+      'trainer.n4.title': '¿Resuelves un 4x4?',
+      'trainer.n4.text': 'En un 4x4 pueden aparecer dos casos de la última capa que nunca pasan en un 3x3 (paridad de OLL y paridad de PLL). Necesitan algoritmos propios, y los algoritmos del Entrenador con r, f o M necesitan una versión de 4x4.',
+      'trainer.n4.btn': 'Ver la sección de 4x4',
 
       'plan.situation': 'Situación de {name}', 'plan.currentAo12': 'ao12 actual:', 'plan.noAo12': 'aún no hay 12 resoluciones',
       'plan.currentPhase': 'Fase actual:', 'plan.goal': 'Meta:',

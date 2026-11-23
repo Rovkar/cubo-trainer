@@ -67,6 +67,8 @@
       });
       h += '</div>';
     });
+    h += '<section class="card n4-link"><h3>' + esc(t('trainer.n4.title')) + '</h3><p class="muted">' + esc(t('trainer.n4.text')) + '</p>' +
+      '<button class="btn" data-act="n4">' + esc(t('trainer.n4.btn')) + '</button></section>';
     return h;
   }
 
@@ -203,6 +205,10 @@
         if (mode === 'practice' && !cur) nextCase();
         render();
       } else if (b.dataset.act === 'notation') { if (root.App && root.App.showTab) root.App.showTab('notation'); }
+      else if (b.dataset.act === 'n4') {
+        if (root.App && root.App.showTab) root.App.showTab('notation');
+        if (root.NotationView && root.NotationView.setSize) root.NotationView.setSize('4x4');
+      }
       else if (b.dataset.act === 'next') goNext();
       else if (b.dataset.act === 'reveal' && cur) {
         cur.revealed = true;

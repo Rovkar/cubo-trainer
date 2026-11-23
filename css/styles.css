@@ -139,6 +139,10 @@ details.phase.done { opacity: .85; } details.phase summary { display: flex; flex
 @media (max-width: 400px) {
   .tab { padding: 10px 6px; font-size: .86rem; }
 }
+@media (max-width: 380px) {
+  .tabs { padding: 0 4px; }
+  .tab { padding: 10px 4px; font-size: .82rem; }
+}
 @media (max-width: 480px) {
   .bd-row { grid-template-columns: 1fr; gap: 2px; } .bd-v { text-align: left; }
   .practice-top .ll { width: 140px; height: 140px; }
